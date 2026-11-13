@@ -9,7 +9,7 @@
 | 5 | Pengelolaan challenge oleh panitia | Selesai; TypeScript, 26 tes, migrasi lokal, dan build lulus |
 | 6 | Daftar/detail challenge dan pengalaman peserta | Selesai; TypeScript, 27 tes, dan build lulus |
 | 7 | Validasi flag, skor dinamis, rate limit | Selesai; 32 tes termasuk RPC/restart DO, migrasi, TypeScript, dan build lulus |
-| 8 | Peringkat, profil tim, riwayat | Belum dikerjakan |
+| 8 | Peringkat, profil tim, riwayat | Selesai; TypeScript, 33 tes, dan build lulus |
 | 9 | Operasional panitia, pengumuman, pengaturan | Belum dikerjakan |
 | 10 | Pengujian menyeluruh dan kesiapan deploy | Belum dikerjakan |
 
@@ -93,3 +93,14 @@ pengujian dibersihkan dari database lokal setelah pemeriksaan.
   menjadi draft. Riwayat dan atribusi tim lama dipertahankan saat anggota pindah.
 - 32 tes lulus, termasuk RPC DO nyata, pengiriman bersamaan dan pemulihan limiter
   setelah restart runtime; TypeScript, migrasi lokal, dan build produksi lulus.
+
+## Implementasi 8
+
+- Peringkat publik dan profil tim memakai agregasi skor yang sama. Tim dan
+  challenge arsip mempertahankan solve serta pengaruhnya pada skor dinamis.
+- Tie-break: skor menurun, waktu solve terakhir menaik, ID tim menaik.
+- Polling halaman setiap 30 detik, hanya ketika tab terlihat. API tidak dicache.
+- Profil publik hanya memuat nama anggota/solver dan progres, tanpa email/kode.
+- Riwayat pribadi serta riwayat pengiriman tim memerlukan sesi; hasil dan
+  atribusi tim asli dipertahankan. Daftar/riwayat menggunakan pagination 50 item.
+- TypeScript, 33 tes, dan build produksi lulus.

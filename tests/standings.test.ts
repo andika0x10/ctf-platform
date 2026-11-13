@@ -1,0 +1,32 @@
+// @vitest-environment node
+import { beforeAll, afterAll, expect, it } from "vitest";
+import { testDatabase, challengeBody } from "./support/database";
+import { createTeam, updateTeam } from "@/lib/teams";
+import { saveChallenge } from "@/lib/challenges";
+import { submitFlag } from "@/lib/submissions";
+import { standings, publicTeam, submissionHistory } from "@/lib/standings";
+let f: Awaited<ReturnType<typeof testDatabase>>;
+beforeAll(async () => { f = await testDatabase(); }, 30000);
+afterAll(async () => { await f?.runtime.dispose(); });
+it("updates all prior scores, preserves archived solves, ranks ties deterministically and exposes no invitation/email", async () => {
+  const admin = await f.identity(true); const first = await f.identity(); const second = await f.identity();
+  const a = await createTeam(f.database, first.viewer, "First team"); const b = await createTeam(f.database, second.viewer, "Second team");
+  const { id } = await saveChallenge(f.database, admin.viewer, f.flagSecret, challengeBody({ status: "published", decay: 2 }));
+  const limiter = { consume: async () => ({ allowed: true, retryAfter: 0 }) };
+  await submitFlag(f.database, first.viewer, f.flagSecret, limiter, id, "CTF{example}");
+  expect((await standings(f.database)).teams[0]).toMatchObject({ id: a, score: 400, solveCount: 1 });
+  await submitFlag(f.database, second.viewer, f.flagSecret, limiter, id, "CTF{example}");
+  await f.database.prepare("UPDATE solves SET solved_at=? WHERE team_id=?").bind("2026-01-01T00:00:00.000Z", a).run();
+  await f.database.prepare("UPDATE solves SET solved_at=? WHERE team_id=?").bind("2026-01-02T00:00:00.000Z", b).run();
+  const table = await standings(f.database); expect(table.teams.map(t => t.id)).toEqual([a, b]); expect(table.teams.map(t => t.score)).toEqual([100, 100]);
+  await updateTeam(f.database, first.viewer, a, { action: "archive" });
+  await saveChallenge(f.database, admin.viewer, f.flagSecret, challengeBody({ status: "archived", revision: 1, flag: "", decay: 2 }), id);
+  const profile = await publicTeam(f.database, a);
+  expect(profile).toMatchObject({ score: 100, solveCount: 1, status: "archived", members: [] }); expect(profile?.solves[0].solverName).toBe(first.viewer.name);
+  expect(JSON.stringify(profile)).not.toContain(first.viewer.email); expect(profile).not.toHaveProperty("invite_code"); expect(profile).not.toHaveProperty("inviteCode");
+  expect((await submissionHistory(f.database, { userId: first.viewer.id })).entries[0].teamId).toBe(a);
+  expect((await submissionHistory(f.database, { teamId: a })).total).toBe(1);
+  expect((await submissionHistory(f.database, { userId: crypto.randomUUID() })).total).toBe(0);
+  await f.database.prepare("UPDATE solves SET solved_at='2026-01-01T00:00:00.000Z'").run();
+  expect((await standings(f.database)).teams.map(t => t.id)).toEqual([a, b].sort());
+});
