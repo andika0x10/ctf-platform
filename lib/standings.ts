@@ -25,11 +25,12 @@ export async function publicTeam(database: D1Database, id: string, page = 1) {
   return { ...standing, members: members.results as { name: string }[], solves: solves.results as { id: string; title: string; category: string; status: string; points: number; solvedAt: string; solverName: string }[] };
 }
 export type HistoryEntry = { id: number; challengeId: string; title: string; teamId: string; teamName: string; userName: string; result: string; submittedAt: string };
-export async function submissionHistory(database: D1Database, filter: { userId?: string; teamId?: string; challengeId?: string; result?: string }, page = 1) {
+export async function submissionHistory(database: D1Database, filter: { userId?: string; teamId?: string; challengeId?: string; result?: string; search?: string }, page = 1) {
   const conditions: string[] = []; const params: string[] = [];
   for (const [field, column] of [["userId", "s.user_id"], ["teamId", "s.team_id"], ["challengeId", "s.challenge_id"], ["result", "s.result"]] as const) {
     if (filter[field]) { conditions.push(`${column}=?`); params.push(filter[field]!); }
   }
+  if (filter.search) { conditions.push(`(s.challenge_id IN(SELECT id FROM challenges WHERE instr(lower(title),?)>0) OR s.team_id IN(SELECT id FROM teams WHERE instr(lower(name),?)>0) OR s.user_id IN(SELECT id FROM "user" WHERE instr(lower(name),?)>0))`); const query = filter.search.toLowerCase().slice(0, 100); params.push(query, query, query); }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   const [count, entries] = await database.batch([
     database.prepare(`SELECT count(*) AS total FROM submissions s ${where}`).bind(...params),

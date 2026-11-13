@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { organizerNavigation, publicNavigation, type UserRole } from "@/lib/navigation";
 import { Chevron, PixelFlag } from "./pixel-icons";
 
-export function SiteHeader({ role }: { role?: UserRole }) {
+export function SiteHeader({ role, platformName = "CTF Platform" }: { role?: UserRole; platformName?: string }) {
   const pathname = usePathname();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -47,8 +47,8 @@ export function SiteHeader({ role }: { role?: UserRole }) {
       if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) closeNavigation();
     }}>
       <div className="shell header-inner">
-        <Link href="/" className="brand" aria-label="CTF Platform, beranda" onClick={closeNavigation}>
-          <PixelFlag width="30" height="30" /><span>CTF Platform</span>
+        <Link href="/" className="brand" aria-label={`${platformName}, beranda`} onClick={closeNavigation}>
+          <PixelFlag width="30" height="30" /><span>{platformName}</span>
         </Link>
         <button ref={mobileToggle} className="mobile-toggle" aria-expanded={mobileOpen} aria-controls="main-navigation" onClick={() => {
           setMobileOpen(!mobileOpen);

@@ -1,0 +1,46 @@
+// @vitest-environment node
+import { beforeAll, afterAll, expect, it } from "vitest";
+import { testDatabase, request, context } from "./support/database";
+import { platformSettings, announcements, csvCell } from "@/lib/operations";
+import { readViewer } from "@/lib/auth/viewer";
+import { createAuth } from "@/lib/auth/factory";
+import { PATCH as settings } from "@/app/api/admin/settings/route";
+import { PATCH as suspend } from "@/app/api/admin/participants/[id]/route";
+import { POST as publish } from "@/app/api/admin/announcements/route";
+import { PATCH as edit } from "@/app/api/admin/announcements/[id]/route";
+import { GET as exportCSV } from "@/app/api/admin/export/route";
+let f: Awaited<ReturnType<typeof testDatabase>>;
+beforeAll(async () => { f = await testDatabase(); }, 30000);
+afterAll(async () => { await f?.runtime.dispose(); });
+it("protects organizer operations, revokes suspended sessions, controls registration and keeps drafts private", async () => {
+  const admin = await f.identity(true); const person = await f.identity();
+  const payload = { platformName: "CTF Practice", registrationOpen: false, rules: "## Aturan baru\n\nBermain bersama." };
+  expect((await settings(request("/settings", person.cookie, payload, "PATCH"))).status).toBe(403);
+  expect((await settings(request("/settings", admin.cookie, { ...payload, platformName: "x".repeat(25) }, "PATCH"))).status).toBe(400);
+  expect((await settings(request("/settings", admin.cookie, payload, "PATCH"))).status).toBe(200);
+  expect(await platformSettings(f.database)).toEqual(payload);
+  const auth = createAuth(f.database, f.configuration);
+  const hook = auth.options.databaseHooks!.user!.create!.before!;
+  await expect(hook({ id: crypto.randomUUID(), name: "new", email: "new@example.test", emailVerified: true, createdAt: new Date(), updatedAt: new Date() })).rejects.toThrow("Pendaftaran sedang ditutup");
+  expect(await readViewer(f.database, f.configuration, new Headers({ cookie: person.cookie }))).not.toBeNull();
+  const body = { title: "Kabar terbaru", body: "Isi **pengumuman**", status: "draft" };
+  expect((await publish(request("/announcement", person.cookie, body))).status).toBe(403);
+  const created = await publish(request("/announcement", admin.cookie, body)); expect(created.status).toBe(201); const { id } = await created.json() as { id: string };
+  expect((await announcements(f.database)).total).toBe(0);
+  expect((await edit(request("/announcement", admin.cookie, { ...body, status: "published", revision: 1 }, "PATCH"), context(id))).status).toBe(200);
+  expect((await announcements(f.database)).entries[0].title).toBe(body.title);
+  expect((await edit(request("/announcement", admin.cookie, { ...body, revision: 1 }, "PATCH"), context(id))).status).toBe(409);
+  expect((await suspend(request("/suspend", admin.cookie, { suspended: true }, "PATCH"), context(admin.viewer.id))).status).toBe(403);
+  expect((await suspend(request("/suspend", person.cookie, { suspended: true }, "PATCH"), context(admin.viewer.id))).status).toBe(403);
+  expect((await suspend(request("/suspend", admin.cookie, { suspended: true }, "PATCH"), context(person.viewer.id))).status).toBe(200);
+  expect(await readViewer(f.database, f.configuration, new Headers({ cookie: person.cookie }))).toBeNull();
+  expect(await f.database.prepare('SELECT count(*) AS n FROM "session" WHERE userId=?').bind(person.viewer.id).first("n")).toBe(0);
+  expect((await suspend(request("/suspend", admin.cookie, { suspended: false }, "PATCH"), context(person.viewer.id))).status).toBe(200);
+  expect(await readViewer(f.database, f.configuration, new Headers({ cookie: person.cookie }))).toBeNull();
+  const csv = await exportCSV(request("/export", admin.cookie, undefined, "GET")); expect(csv.status).toBe(200); expect(csv.headers.get("cache-control")).toBe("no-store");
+  expect((await exportCSV(request("/export", "", undefined, "GET"))).status).toBe(401);
+});
+it("escapes CSV formula prefixes and embedded quotes", () => {
+  for (const input of ["=SUM(1,2)", "+1", "-1", "@formula", " \t=bad", "\tbad", "\rbad"]) expect(csvCell(input)).toMatch(/^"'/);
+  expect(csvCell('a"b,c')).toBe('"a""b,c"'); expect(csvCell("normal")).toBe('"normal"');
+});

@@ -13,6 +13,9 @@ export default defineConfig({
     },
   },
   test: {
+    // Bound native workerd processes on development machines.
+    maxWorkers: 3,
+    testTimeout: 15000,
     include: ["tests/**/*.test.{ts,tsx}"],
     environment: "happy-dom",
     environmentOptions: { happyDOM: { url: "http://localhost/" } },

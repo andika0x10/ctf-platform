@@ -10,16 +10,16 @@
 | 6 | Daftar/detail challenge dan pengalaman peserta | Selesai; TypeScript, 27 tes, dan build lulus |
 | 7 | Validasi flag, skor dinamis, rate limit | Selesai; 32 tes termasuk RPC/restart DO, migrasi, TypeScript, dan build lulus |
 | 8 | Peringkat, profil tim, riwayat | Selesai; TypeScript, 33 tes, dan build lulus |
-| 9 | Operasional panitia, pengumuman, pengaturan | Belum dikerjakan |
+| 9 | Operasional panitia, pengumuman, pengaturan | Selesai; TypeScript, 35 tes, migrasi lokal, dan build lulus |
 | 10 | Pengujian menyeluruh dan kesiapan deploy | Belum dikerjakan |
 
-Halaman challenges, peringkat, dan pengumuman masih berupa state awal. Halaman
-login, akun, tim, dan pengelolaan tim panitia kini menggunakan backend nyata.
-Tidak ada challenge atau skor buatan yang ditampilkan sebagai data nyata.
+Halaman peserta, peringkat, riwayat, dan operasional panitia menggunakan backend
+nyata. Tidak ada challenge atau skor buatan yang ditampilkan sebagai data nyata.
 
 Migrasi 0001 berisi pengaturan dan kategori. Migrasi 0002 dihasilkan dari skema
 Better Auth 1.7.22, sedangkan 0003 menyimpan tim, keanggotaan, dan aktivitas.
 Migrasi 0004 menambahkan challenge dengan kontrol revisi dan digest flag.
+Migrasi 0005 mencatat pengiriman/solve; 0006 memuat pengumuman dan aturan.
 
 ## Verifikasi implementasi 1–2
 
@@ -104,3 +104,18 @@ pengujian dibersihkan dari database lokal setelah pemeriksaan.
 - Riwayat pribadi serta riwayat pengiriman tim memerlukan sesi; hasil dan
   atribusi tim asli dipertahankan. Daftar/riwayat menggunakan pagination 50 item.
 - TypeScript, 33 tes, dan build produksi lulus.
+
+## Implementasi 9
+
+- Ringkasan panitia menampilkan hitungan nyata dan aktivitas pengiriman terbaru.
+- Pencarian akun dan riwayat pengiriman dengan filter nama challenge/tim/peserta,
+  hasil, serta konteks akun/tim/challenge. Semua daftar menggunakan pagination.
+- Suspend mencabut seluruh sesi peserta. Aktifkan kembali tidak menghidupkan
+  sesi lama. Moderasi peserta tidak dapat mengubah akun panitia.
+- Pengumuman Markdown dengan revisi, draft/terbit/arsip; halaman publik hanya
+  membaca yang terbit. Nama platform, aturan dan pendaftaran dapat diatur panitia.
+- Penutupan pendaftaran berlaku pada hook penciptaan akun Google baru, sementara
+  akun yang sudah ada tetap dapat masuk.
+- Ekspor CSV peringkat hanya untuk panitia, tanpa email/kode/flag, dengan escaping
+  formula spreadsheet dan batas eksplisit 10.000 tim.
+- TypeScript, 35 tes, migrasi lokal, dan build produksi lulus.
