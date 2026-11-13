@@ -15,7 +15,7 @@ export type TeamDetails = {
 };
 export type TeamAction =
   | { action: "rename"; name: string }
-  | { action: "rotate-invite" | "leave" | "archive" }
+  | { action: "rotate-invite" | "leave" | "delete" }
   | { action: "remove-member" | "transfer-owner"; userId: string };
 
 function newInvitationCode() {
@@ -108,16 +108,49 @@ export async function updateTeam(database: D1Database, viewer: Viewer, id: strin
   if (!viewer.profileComplete) throw new RequestError(403, "Simpan nama tampilanmu terlebih dahulu.");
   const team = await getTeamDetails(database, id, viewer);
   if (!team) throw new RequestError(403, "Kamu tidak memiliki akses ke tim ini.");
-  if (team.status !== "active") throw new RequestError(409, "Tim ini sudah diarsipkan.");
   const organizer = viewer.role === "organizer";
   const owner = team.ownerUserId === viewer.id;
-  if (action.action === "leave") {
-    participant(viewer);
-    if (owner) throw new RequestError(409, "Alihkan kepemilikan sebelum keluar. Jika kamu anggota terakhir, arsipkan tim.");
-  } else if (!organizer && !owner) throw new RequestError(403, "Hanya pemilik tim atau panitia yang dapat melakukan aksi ini.");
+  if (action.action !== "leave" && !organizer && !owner) throw new RequestError(403, "Hanya pemilik tim atau panitia yang dapat melakukan aksi ini.");
 
   const operation = crypto.randomUUID();
   const now = new Date().toISOString();
+  if (action.action === "delete") {
+    const result = await batch(database, [database.prepare(`DELETE FROM teams WHERE id = ? AND (? = 1 OR owner_user_id = ?)
+      AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND profileComplete = 1 AND emailVerified = 1)`)
+      .bind(id, organizer ? 1 : 0, viewer.id, viewer.id)]);
+    if (!result[0].meta.changes) throw new RequestError(409, "Tim atau akses berubah. Muat ulang halaman dan coba lagi.");
+    return;
+  }
+  if (action.action === "leave") {
+    // Resolve ownership from current membership inside the same transaction.
+    // The last member deletes the team; all other departures preserve its score.
+    const eligible = `EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id = ?)
+      AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND profileComplete = 1 AND emailVerified = 1)`;
+    const result = await batch(database, [
+      database.prepare(`DELETE FROM teams WHERE id = ? AND ${eligible}
+        AND NOT EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id <> ?)`)
+        .bind(id, viewer.id, viewer.id, viewer.id),
+      database.prepare(`INSERT INTO team_events (id, team_id, actor_user_id, subject_user_id, kind, created_at)
+        SELECT ?, id, ?, (SELECT user_id FROM team_members WHERE team_id = teams.id AND user_id <> ? ORDER BY joined_at, user_id LIMIT 1),
+        'ownership_transferred', ? FROM teams WHERE id = ? AND owner_user_id = ? AND ${eligible}
+        AND EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id <> ?)`)
+        .bind(crypto.randomUUID(), viewer.id, viewer.id, now, id, viewer.id, viewer.id, viewer.id, viewer.id),
+      database.prepare(`UPDATE teams SET owner_user_id = CASE WHEN owner_user_id = ? THEN
+        (SELECT user_id FROM team_members WHERE team_id = teams.id AND user_id <> ? ORDER BY joined_at, user_id LIMIT 1)
+        ELSE owner_user_id END, updated_at = ?, last_operation_id = ? WHERE id = ? AND ${eligible}
+        AND EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id <> ?)`)
+        .bind(viewer.id, viewer.id, now, operation, id, viewer.id, viewer.id, viewer.id),
+      database.prepare(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?
+        AND EXISTS (SELECT 1 FROM teams WHERE id = ? AND last_operation_id = ?)`)
+        .bind(id, viewer.id, id, operation),
+      database.prepare(`INSERT INTO team_events (id, team_id, actor_user_id, subject_user_id, kind, created_at)
+        SELECT ?, id, ?, ?, 'left', ? FROM teams WHERE id = ? AND last_operation_id = ?`)
+        .bind(operation, viewer.id, viewer.id, now, id, operation),
+    ]);
+    if (!result[0].meta.changes && !result[2].meta.changes) throw new RequestError(409, "Keanggotaan tim berubah. Muat ulang halaman dan coba lagi.");
+    return;
+  }
+  if (team.status !== "active") throw new RequestError(409, "Tim ini tidak aktif. Hapus tim jika sudah tidak digunakan.");
   const updates = ["updated_at = ?", "last_operation_id = ?"];
   const values: (string | number)[] = [now, operation];
   let condition = "(? = 1 OR owner_user_id = ?)";
@@ -142,15 +175,6 @@ export async function updateTeam(database: D1Database, viewer: Viewer, id: strin
       subject = action.userId; kind = "removed";
       condition += " AND EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id = ? AND user_id <> teams.owner_user_id)";
       conditions.push(action.userId); break;
-    case "leave":
-      kind = "left"; subject = viewer.id;
-      condition = "owner_user_id <> ? AND EXISTS (SELECT 1 FROM team_members WHERE team_id = teams.id AND user_id = ?)";
-      conditions.splice(0, conditions.length, viewer.id, viewer.id); break;
-    case "archive":
-      if (!organizer && team.members.length !== 1) throw new RequestError(409, "Tim masih memiliki anggota lain. Alihkan kepemilikan jika kamu ingin keluar.");
-      updates.push("status = 'archived'", "archived_at = ?"); values.push(now); kind = "archived";
-      condition += " AND (? = 1 OR (SELECT COUNT(*) FROM team_members WHERE team_id = teams.id) = 1)";
-      conditions.push(organizer ? 1 : 0); break;
   }
 
   // The operation marker couples every write to authorization rechecked in the SAME transaction.
@@ -158,13 +182,10 @@ export async function updateTeam(database: D1Database, viewer: Viewer, id: strin
   const statements = [database.prepare(`UPDATE teams SET ${updates.join(", ")} WHERE id = ? AND status = 'active' AND ${condition}
     AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND profileComplete = 1 AND emailVerified = 1)`)
     .bind(...values, id, ...conditions, viewer.id)];
-  if (action.action === "leave" || action.action === "remove-member") {
+  if (action.action === "remove-member") {
     statements.push(database.prepare(`DELETE FROM team_members WHERE team_id = ? AND user_id = ?
       AND EXISTS (SELECT 1 FROM teams WHERE id = ? AND last_operation_id = ?)`)
       .bind(id, subject, id, operation));
-  } else if (action.action === "archive") {
-    statements.push(database.prepare(`DELETE FROM team_members WHERE team_id = ?
-      AND EXISTS (SELECT 1 FROM teams WHERE id = ? AND last_operation_id = ? AND status = 'archived')`).bind(id, id, operation));
   }
   statements.push(database.prepare(`INSERT INTO team_events (id, team_id, actor_user_id, subject_user_id, kind, created_at)
     SELECT ?, id, ?, ?, ?, ? FROM teams WHERE id = ? AND last_operation_id = ?`).bind(operation, viewer.id, subject, kind, now, id, operation));

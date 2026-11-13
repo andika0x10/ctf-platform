@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { organizerNavigation, publicNavigation, type UserRole } from "@/lib/navigation";
+import { navigationForRole, type UserRole } from "@/lib/navigation";
 import { Chevron, PixelFlag } from "./pixel-icons";
 
 export function SiteHeader({ role, platformName = "CTF Platform" }: { role?: UserRole; platformName?: string }) {
@@ -13,7 +13,7 @@ export function SiteHeader({ role, platformName = "CTF Platform" }: { role?: Use
   const header = useRef<HTMLElement>(null);
   const mobileToggle = useRef<HTMLButtonElement>(null);
   const triggers = useRef<Record<string, HTMLButtonElement | null>>({});
-  const groups = role === "organizer" ? [...publicNavigation, organizerNavigation] : publicNavigation;
+  const groups = navigationForRole(role);
 
   function closeNavigation() {
     setOpenGroup(null);

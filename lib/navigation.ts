@@ -1,5 +1,5 @@
 export type UserRole = "participant" | "organizer";
-export type NavigationLink = { label: string; href: string };
+export type NavigationLink = { label: string; href: string; roles?: UserRole[] };
 export type NavigationGroup = {
   id: string;
   label: string;
@@ -13,16 +13,16 @@ export const publicNavigation: NavigationGroup[] = [
     description: "Satu challenge, satu hal baru untuk dipelajari. Pilih jalurmu sendiri.",
     columns: [
       { title: "Mulai bermain", links: [
-        { label: "Challenges", href: "/challenges" },
+        { label: "Challenges", href: "/challenges", roles: ["participant", "organizer"] },
         { label: "Scoreboard", href: "/scoreboard" },
         { label: "Cara bermain", href: "/#cara-bermain" },
       ] },
       { title: "Jelajahi kategori", links: [
-        { label: "Web", href: "/challenges?category=web" },
-        { label: "Crypto", href: "/challenges?category=crypto" },
-        { label: "Forensics", href: "/challenges?category=forensics" },
-        { label: "Reverse", href: "/challenges?category=reverse" },
-        { label: "Misc", href: "/challenges?category=misc" },
+        { label: "Web", href: "/challenges?category=web", roles: ["participant", "organizer"] },
+        { label: "Crypto", href: "/challenges?category=crypto", roles: ["participant", "organizer"] },
+        { label: "Forensics", href: "/challenges?category=forensics", roles: ["participant", "organizer"] },
+        { label: "Reverse", href: "/challenges?category=reverse", roles: ["participant", "organizer"] },
+        { label: "Misc", href: "/challenges?category=misc", roles: ["participant", "organizer"] },
       ] },
     ],
   },
@@ -31,12 +31,12 @@ export const publicNavigation: NavigationGroup[] = [
     description: "Bertukar sudut pandang. Selesaikan challenge bersama timmu.",
     columns: [
       { title: "Bersama tim", links: [
-        { label: "Tim saya", href: "/team" },
-        { label: "Buat atau gabung tim", href: "/team#bergabung" },
+        { label: "Tim saya", href: "/team", roles: ["participant"] },
+        { label: "Buat atau gabung tim", href: "/team#bergabung", roles: ["participant"] },
       ] },
       { title: "Ruang pribadi", links: [
-        { label: "Akun saya", href: "/account" },
-        { label: "Riwayat submissions", href: "/account#riwayat" },
+        { label: "Akun saya", href: "/account", roles: ["participant", "organizer"] },
+        { label: "Riwayat submissions", href: "/account#riwayat", roles: ["participant"] },
       ] },
     ],
   },
@@ -74,3 +74,10 @@ export const organizerNavigation: NavigationGroup = {
     ] },
   ],
 };
+
+export function navigationForRole(role?: UserRole): NavigationGroup[] {
+  const groups = role === "organizer" ? [...publicNavigation, organizerNavigation] : publicNavigation;
+  return groups.map(group => ({ ...group, columns: group.columns.map(column => ({
+    ...column, links: column.links.filter(link => !link.roles || Boolean(role && link.roles.includes(role))),
+  })).filter(column => column.links.length > 0) })).filter(group => group.columns.length > 0);
+}

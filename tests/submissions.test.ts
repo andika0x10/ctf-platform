@@ -45,7 +45,7 @@ describe("authoritative submissions", () => {
   it("rechecks membership, account status and challenge revision when writing", async () => {
     const person = await f.identity(); const team = await createTeam(f.database, person.viewer, "Atomic guard team");
     const challenge = await f.database.prepare("SELECT id FROM challenges LIMIT 1").first<{ id: string }>();
-    const limiter = { consume: async () => { await updateTeam(f.database, person.viewer, team, { action: "archive" }); return { allowed: true, retryAfter: 0 }; } };
+    const limiter = { consume: async () => { await updateTeam(f.database, person.viewer, team, { action: "delete" }); return { allowed: true, retryAfter: 0 }; } };
     await expect(submitFlag(f.database, person.viewer, f.flagSecret, limiter, challenge!.id, "CTF{example}")).rejects.toMatchObject({ status: 409 });
     expect(await f.database.prepare("SELECT count(*) AS n FROM submissions WHERE user_id=?").bind(person.viewer.id).first("n")).toBe(0);
     await createTeam(f.database, person.viewer, "Revision guard team");

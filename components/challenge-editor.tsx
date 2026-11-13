@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Markdown } from "./markdown";
+import { DeleteControl } from "./delete-control";
 import { categoryNames, difficultyNames, challengeStatusNames, type ChallengeDocument } from "@/lib/challenge-types";
 
 export function ChallengeEditor({ challenge }: { challenge?: ChallengeDocument }) {
@@ -42,8 +43,9 @@ export function ChallengeEditor({ challenge }: { challenge?: ChallengeDocument }
         {[["initialPoints", "Poin awal", challenge?.initialPoints ?? 500], ["minimumPoints", "Poin minimum", challenge?.minimumPoints ?? 100], ["decay", "Jumlah tim menuju minimum", challenge?.decay ?? 50]].map(([name, label, value]) => <div className="field" key={name}><label htmlFor={String(name)}>{label}</label><input id={String(name)} name={String(name)} type="number" min={1} max={100000} defaultValue={value} required /></div>)}
       </div></section>
       <div className="field"><label htmlFor="flag">{challenge ? "Ganti flag (opsional)" : "Flag"}</label><input id="flag" name="flag" type="password" autoComplete="new-password" maxLength={512} required={!challenge} /><p className="field-hint">Huruf besar dan kecil dibedakan. Spasi di awal/akhir diabaikan. {challenge && "Kosongkan untuk mempertahankan flag saat ini."}</p></div>
-      <div className="field"><label htmlFor="status">Status</label><select id="status" name="status" defaultValue={challenge?.status || "draft"}>{Object.entries(challengeStatusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><p className="field-hint">Hanya challenge terbit yang dapat dimainkan. Arsip mempertahankan riwayat.</p></div>
+      <div className="field"><label htmlFor="status">Status</label><select id="status" name="status" defaultValue={challenge?.status === "published" ? "published" : "draft"}>{Object.entries(challengeStatusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><p className="field-hint">Hanya challenge terbit yang dapat dimainkan.</p></div>
       <div className="action-row"><button className="button" disabled={pending}>{pending ? "Menyimpan…" : "Simpan challenge"}</button><button className="button button-outline" type="button" aria-expanded={preview} onClick={() => setPreview(!preview)}>Pratinjau teks</button><Link className="text-link" href="/admin/challenges">Kembali ke daftar</Link></div>
+      {challenge && <DeleteControl url={`/api/admin/challenges/${challenge.id}`} revision={challenge.revision} label="Hapus challenge" description="Challenge beserta seluruh solve dan submissions terkait akan dihapus permanen. Skor seluruh tim akan dihitung ulang. Tindakan ini tidak dapat dibatalkan." destination="/admin/challenges" />}
     </fieldset>
     {preview && <section className="preview-panel"><h2 className="subheading">Pratinjau deskripsi</h2><Markdown>{description}</Markdown>{hint && <><h3 className="subheading">Hint</h3><Markdown>{hint}</Markdown></>}</section>}
   </form>;

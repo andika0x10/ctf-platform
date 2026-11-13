@@ -104,7 +104,7 @@ try {
   const cleanup = [];
   for (const id of challenges) cleanup.push({ sql: "DELETE FROM solves WHERE challenge_id=?", params: [id] }, { sql: "DELETE FROM submissions WHERE challenge_id=?", params: [id] }, { sql: "DELETE FROM challenges WHERE id=?", params: [id] });
   for (const id of notes) cleanup.push({ sql: "DELETE FROM announcements WHERE id=?", params: [id] });
-  for (const id of teams) cleanup.push({ sql: "UPDATE teams SET status='archived' WHERE id=?", params: [id] }, { sql: "DELETE FROM team_members WHERE team_id=?", params: [id] }, { sql: "DELETE FROM team_events WHERE team_id=?", params: [id] }, { sql: "DELETE FROM teams WHERE id=?", params: [id] });
+  for (const id of teams) cleanup.push({ sql: "DELETE FROM teams WHERE id=?", params: [id] });
   for (const p of people) cleanup.push({ sql: 'DELETE FROM "session" WHERE userId=?', params: [p.id] }, { sql: 'DELETE FROM "user" WHERE id=? AND email=?', params: [p.id, p.email] });
   try { for (let i = 0; i < cleanup.length; i += 40) sql(cleanup.slice(i, i + 40)); }
   finally { try { unlinkSync(file); } catch {} }

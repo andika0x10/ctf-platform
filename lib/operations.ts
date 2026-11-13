@@ -33,7 +33,7 @@ export async function announcement(database: D1Database, viewer: Viewer, id: str
 export async function saveAnnouncement(database: D1Database, viewer: Viewer, body: Record<string, unknown>, id?: string) {
   organizer(viewer); onlyFields(body, ["title", "body", "status", "revision"]);
   const title = text(body.title, "Judul", 100); const content = text(body.body, "Isi pengumuman", 20000);
-  const status = String(body.status); if (!["draft", "published", "archived"].includes(status)) throw new RequestError(400, "Status pengumuman tidak valid.");
+  const status = String(body.status); if (!["draft", "published"].includes(status)) throw new RequestError(400, "Status pengumuman tidak valid.");
   const now = new Date().toISOString(); const target = id || crypto.randomUUID();
   if (id && (!Number.isSafeInteger(body.revision) || Number(body.revision) < 1)) throw new RequestError(400, "Versi pengumuman tidak valid.");
   const result = id
@@ -41,6 +41,14 @@ export async function saveAnnouncement(database: D1Database, viewer: Viewer, bod
     : await database.prepare(`INSERT INTO announcements(id,title,body,status,created_by,updated_by,created_at,updated_at) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM "user" WHERE id=? AND suspended=0 AND emailVerified=1)`).bind(target, title, content, status, viewer.id, viewer.id, now, now, viewer.id).run();
   if (!result.meta.changes) throw new RequestError(409, "Pengumuman berubah atau tidak tersedia. Muat ulang editor.");
   return { id: target };
+}
+export async function deleteAnnouncement(database: D1Database, viewer: Viewer, id: string, revision: unknown) {
+  organizer(viewer);
+  if (!Number.isSafeInteger(revision) || Number(revision) < 1) throw new RequestError(400, "Versi pengumuman tidak valid. Muat ulang editor.");
+  const result = await database.prepare(`DELETE FROM announcements WHERE id = ? AND revision = ?
+    AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND profileComplete = 1 AND emailVerified = 1)`)
+    .bind(id, Number(revision), viewer.id).run();
+  if (!result.meta.changes) throw new RequestError(409, "Pengumuman berubah atau sudah dihapus. Muat ulang editor.");
 }
 export async function participants(database: D1Database, allowlist: string[], query = "", page = 1) {
   const search = query.toLowerCase().slice(0, 100);

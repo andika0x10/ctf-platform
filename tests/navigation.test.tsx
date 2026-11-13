@@ -35,14 +35,23 @@ describe("mega menu disclosures", () => {
   it("exposes only public groups to guests and participants", async () => {
     await render();
     expect(trigger("organizer")).toBeNull();
+    expect(trigger("community")).toBeNull();
+    expect(container.querySelector('a[href="/challenges"]')).toBeNull();
+    expect(container.querySelector('a[href="/team"]')).toBeNull();
+    expect(container.querySelector('a[href="/account"]')).toBeNull();
     expect(container.querySelector<HTMLAnchorElement>(".header-account")?.getAttribute("href")).toBe("/login");
     await render("participant");
     expect(trigger("organizer")).toBeNull();
+    expect(container.querySelector('a[href="/team"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/challenges"]')).not.toBeNull();
     expect(container.querySelector<HTMLAnchorElement>(".header-account")?.getAttribute("href")).toBe("/account");
   });
 
   it("provides the grouped organizer navigation only for organizers", async () => {
     await render("organizer");
+    expect(container.querySelector('a[href="/team"]')).toBeNull();
+    expect(container.querySelector('a[href="/team#bergabung"]')).toBeNull();
+    expect(container.querySelector('a[href="/account#riwayat"]')).toBeNull();
     await click(trigger("organizer"));
     expect(panel("organizer").hidden).toBe(false);
     expect(panel("organizer").querySelectorAll(".mega-column").length).toBe(3);

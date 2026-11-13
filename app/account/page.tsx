@@ -26,8 +26,8 @@ export default async function AccountPage({ searchParams }: Props) {
     <div className="account-grid"><section aria-labelledby="profile-title"><h2 id="profile-title" className="subheading">Identitas akun</h2><ProfileForm viewer={viewer} destination={viewer.profileComplete ? null : destination} /></section>
       <section className="account-details" aria-labelledby="account-title"><h2 id="account-title" className="subheading">Akun Google</h2>
         <dl className="details-list"><div><dt>Email pribadi</dt><dd>{viewer.email}</dd></div><div><dt>Akses</dt><dd>{viewer.role === "organizer" ? "Panitia" : "Peserta"}</dd></div></dl>
-        {viewer.profileComplete && <Link className="text-link" href={destination}>{viewer.role === "organizer" ? "Buka ruang panitia" : "Buka tim saya"}</Link>}
-        <SignOutButton />
+        <div className="action-row">{viewer.profileComplete && <Link className="text-link" href={destination}>{viewer.role === "organizer" ? "Buka ruang panitia" : "Buka tim saya"}</Link>}
+        <SignOutButton /></div>
       </section></div>
     <section id="riwayat" className="account-history"><h2 className="subheading">Riwayat submissions</h2><p className="field-hint">{history.total} submission. Setiap submission mencatat timmu saat submit flag.</p><SubmissionTable entries={history.entries} /><nav className="pagination" aria-label="Halaman riwayat submissions">{page > 1 && <Link className="text-link" href={`/account?page=${page - 1}#riwayat`}>Sebelumnya</Link>}{page * 50 < history.total && <Link className="text-link" href={`/account?page=${page + 1}#riwayat`}>Berikutnya</Link>}</nav></section>
   </main>;

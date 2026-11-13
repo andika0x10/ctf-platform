@@ -94,8 +94,10 @@ file pendukung di luar platform.
 - Suspend mencabut sesi tetapi mempertahankan tim, solve dan atribusi. Aktifkan
   kembali tidak menghidupkan sesi lama. Perubahan allowlist memerlukan pembaruan
   konfigurasi runtime. Akun panitia dikelola melalui allowlist, bukan moderasi UI.
-- Arsipkan challenge/tim untuk mempertahankan riwayat. Solve arsip tetap
-  memengaruhi skor. Perubahan parameter challenge menghitung ulang peringkat.
+- Hapus challenge/tim secara permanen beserta solve dan submissions terkait.
+  Penghapusan menghitung ulang peringkat; pastikan migrasi cascade sudah diterapkan.
+  Pembuat dapat keluar tim dengan pengalihan pemilik otomatis ke anggota terlama.
+  Tim dihapus jika anggota terakhir keluar.
 - Ekspor CSV dibatasi eksplisit sampai 10.000 tim; jangan menganggap CSV sebagai
   backup database lengkap. Riwayat pengiriman disimpan tanpa jawaban plaintext.
 - Gunakan observability dengan query string teredaksi. Jangan menambahkan

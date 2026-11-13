@@ -22,7 +22,7 @@ export async function PATCH(request: Request, context: Context) {
         onlyFields(body, ["action", "name"]);
         if (typeof body.name !== "string") throw new RequestError(400, "Nama tim belum diisi.");
         action = { action: "rename", name: body.name }; break;
-      case "rotate-invite": case "leave": case "archive":
+      case "rotate-invite": case "leave": case "delete":
         onlyFields(body, ["action"]); action = { action: body.action }; break;
       case "remove-member": case "transfer-owner":
         onlyFields(body, ["action", "userId"]);

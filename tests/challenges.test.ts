@@ -2,12 +2,19 @@
 import { afterAll, beforeAll, describe, it, expect } from "vitest";
 import { testDatabase, request, context, challengeBody } from "./support/database";
 import { POST } from "@/app/api/admin/challenges/route";
-import { GET, PATCH } from "@/app/api/admin/challenges/[id]/route";
+import { DELETE, GET, PATCH } from "@/app/api/admin/challenges/[id]/route";
 import { flagDigest, verifyFlag } from "@/lib/flags";
 let fixture: Awaited<ReturnType<typeof testDatabase>>;
 beforeAll(async () => { fixture = await testDatabase(); }, 30000);
 afterAll(async () => { await fixture?.runtime.dispose(); });
 describe("organizer challenge authoring", () => {
+  it("requires organizer access, a current revision and same origin to delete", async () => {
+    const person = await fixture.identity();
+    const { challengeInput } = await import("@/lib/challenges");
+    expect(() => challengeInput(challengeBody({ status: "archived" }))).toThrow();
+    expect((await DELETE(request("/challenge", person.cookie, { revision: 1 }, "DELETE"), context("missing"))).status).toBe(403);
+    expect((await DELETE(request("/challenge", "", { revision: 1 }, "DELETE"), context("missing"))).status).toBe(401);
+  });
   it("guards roles, stores only a keyed digest, preserves flag on edit, rejects stale editors", async () => {
     const admin = await fixture.identity(true); const participant = await fixture.identity();
     expect((await POST(request("/api/admin/challenges", participant.cookie, challengeBody()))).status).toBe(403);
@@ -24,6 +31,12 @@ describe("organizer challenge authoring", () => {
     expect((await fixture.database.prepare("SELECT flag_digest FROM challenges WHERE id=?").bind(id).first<{ flag_digest: string }>())!.flag_digest).toBe(stored!.flag_digest);
     expect((await PATCH(request(`/api/admin/challenges/${id}`, admin.cookie, challengeBody({ revision: 1 }), "PATCH"), context(id))).status).toBe(409);
     expect(await flagDigest(fixture.flagSecret, "another", "CTF{example}")).not.toBe(stored!.flag_digest);
+    expect((await DELETE(request(`/api/admin/challenges/${id}`, admin.cookie, { revision: 1 }, "DELETE"), context(id))).status).toBe(409);
+    const crossOrigin = request(`/api/admin/challenges/${id}`, admin.cookie, { revision: 2 }, "DELETE");
+    crossOrigin.headers.set("origin", "https://evil.test");
+    expect((await DELETE(crossOrigin, context(id))).status).toBe(403);
+    expect((await DELETE(request(`/api/admin/challenges/${id}`, admin.cookie, { revision: 2 }, "DELETE"), context(id))).status).toBe(200);
+    expect(await fixture.database.prepare("SELECT id FROM challenges WHERE id=?").bind(id).first()).toBeNull();
   });
   it("rejects unsafe downloads, invalid scoring, unknown fields and missing flags", async () => {
     const adminRow = await fixture.database.prepare('SELECT id FROM "user" WHERE email=?').bind("organizer@example.test").first<{ id: string }>();

@@ -23,7 +23,7 @@ export function challengeInput(body: Record<string, unknown>) {
   const hint = text(body.hint ?? "", "Hint", 4000);
   if (typeof body.category !== "string" || !Object.hasOwn(categoryNames, body.category)) throw new RequestError(400, "Kategori tidak valid.");
   if (typeof body.difficulty !== "string" || !Object.hasOwn(difficultyNames, body.difficulty)) throw new RequestError(400, "Tingkat kesulitan tidak valid.");
-  if (!["draft", "published", "archived"].includes(String(body.status))) throw new RequestError(400, "Status challenge tidak valid.");
+  if (!["draft", "published"].includes(String(body.status))) throw new RequestError(400, "Status challenge tidak valid.");
   for (const field of ["initialPoints", "minimumPoints", "decay"]) {
     if (!Number.isSafeInteger(body[field]) || Number(body[field]) < 1 || Number(body[field]) > 100000) throw new RequestError(400, "Poin dan decay harus berupa bilangan bulat 1–100000.");
   }
@@ -66,12 +66,12 @@ export async function saveChallenge(database: D1Database, viewer: Viewer, secret
     WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND emailVerified = 1)
     AND (? != 'draft' OR NOT EXISTS(SELECT 1 FROM solves WHERE challenge_id=challenges.id))`)
     .bind(...values, digest, viewer.id, now, id, Number(input.revision), viewer.id, input.status).run();
-  if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau sudah memiliki solve sehingga tidak dapat dijadikan draft. Muat ulang editor; gunakan arsip untuk menyembunyikan challenge yang sudah dimainkan.");
+  if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau sudah memiliki solve sehingga tidak dapat dijadikan draft. Muat ulang editor. Hapus challenge untuk menghapusnya beserta solve dan submissions terkait.");
   return { id, revision: Number(input.revision) + 1 };
 }
 export async function listAdminChallenges(database: D1Database, viewer: Viewer, query: string, status: string, page = 1) {
   organizer(viewer);
-  const filter = ["draft", "published", "archived"].includes(status) ? status : "";
+  const filter = ["draft", "published"].includes(status) ? status : "";
   const where = "instr(lower(title), ?) > 0 AND (? = '' OR status = ?)";
   const params = [query.toLowerCase().slice(0, 100), filter, filter];
   const [count, rows] = await database.batch([
@@ -79,4 +79,13 @@ export async function listAdminChallenges(database: D1Database, viewer: Viewer, 
     database.prepare(`SELECT ${columns} FROM challenges WHERE ${where} ORDER BY updated_at DESC,id LIMIT 50 OFFSET ?`).bind(...params, (page - 1) * 50),
   ]);
   return { total: Number((count.results[0] as { total: number }).total), challenges: (rows.results as ChallengeRow[]).map(document) };
+}
+
+export async function deleteChallenge(database: D1Database, viewer: Viewer, id: string, revision: unknown) {
+  organizer(viewer);
+  if (!Number.isSafeInteger(revision) || Number(revision) < 1) throw new RequestError(400, "Versi challenge tidak valid. Muat ulang editor.");
+  const result = await database.prepare(`DELETE FROM challenges WHERE id = ? AND revision = ?
+    AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND profileComplete = 1 AND emailVerified = 1)`)
+    .bind(id, Number(revision), viewer.id).run();
+  if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau sudah dihapus. Muat ulang editor.");
 }

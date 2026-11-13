@@ -74,10 +74,9 @@ try {
   assert.equal(memberDetails.team.members.length, 2);
   assert.equal(memberDetails.team.inviteCode, undefined);
   assert.equal((await call(`/api/teams/${id}`, { person: member, method: "PATCH", body: { action: "rename", name: "Denied" } })).status, 403);
-  assert.equal((await call(`/api/teams/${id}`, { person: owner, method: "PATCH", body: { action: "transfer-owner", userId: member.id } })).status, 200);
   assert.equal((await call(`/api/teams/${id}`, { person: owner, method: "PATCH", body: { action: "leave" } })).status, 200);
   assert.equal((await call(`/api/teams/${id}`, { person: owner })).status, 404);
-  assert.equal((await call(`/api/teams/${id}`, { person: member, method: "PATCH", body: { action: "archive" } })).status, 200);
+  assert.equal((await call(`/api/teams/${id}`, { person: member, method: "PATCH", body: { action: "leave" } })).status, 200);
   assert.equal((await call("/api/teams", { person: member }).then((response) => response.json())).team, null);
   assert.equal((await call("/api/auth/sign-out", { person: member, method: "POST", body: {} })).status, 200);
   assert.equal((await call("/account", { person: member })).status, 307);
@@ -88,14 +87,11 @@ try {
   assert.equal(provider.searchParams.get("redirect_uri"), config.BETTER_AUTH_URL.replace(/\/$/, "") + "/api/auth/callback/google");
   assert.ok(provider.searchParams.get("state"));
   assert.equal((await call("/api/auth/sign-in/social", { method: "POST", body: { provider: "google", callbackURL: "https://evil.test" } })).status, 403);
-  console.log("Runtime verified: authenticated SSR, onboarding, participant/admin guards, create/join, private invite codes, ownership transfer, leave, archive, sign-out, and Google OAuth initiation.");
+  console.log("Runtime verified: authenticated SSR, onboarding, participant/admin guards, create/join, private invite codes, automatic ownership transfer, leave, cascade delete, sign-out, and Google OAuth initiation.");
   console.log("Google account consent and callback completion require a real browser sign-in; this script does not bypass Google in the application.");
 } finally {
   const ids = people.map((person) => person.id);
   const cleanup = [
-    { sql: "UPDATE teams SET status = 'archived' WHERE owner_user_id IN (?, ?)", params: ids },
-    { sql: "DELETE FROM team_members WHERE team_id IN (SELECT id FROM teams WHERE owner_user_id IN (?, ?))", params: ids },
-    { sql: "DELETE FROM team_events WHERE team_id IN (SELECT id FROM teams WHERE owner_user_id IN (?, ?))", params: ids },
     { sql: "DELETE FROM teams WHERE owner_user_id IN (?, ?)", params: ids },
   ];
   for (const person of people) cleanup.push(

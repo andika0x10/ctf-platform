@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { testDatabase, request, context, challengeBody } from "./support/database";
-import { saveChallenge } from "@/lib/challenges";
+import { deleteChallenge, saveChallenge } from "@/lib/challenges";
 import { getPlayableChallenge, listPlayableChallenges } from "@/lib/public-challenges";
 import { GET } from "@/app/api/challenges/[id]/hint/route";
 let fixture: Awaited<ReturnType<typeof testDatabase>>;
@@ -11,8 +11,9 @@ it("exposes only published challenges and reveals hints only to signed-in reader
   const admin = await fixture.identity(true); const participant = await fixture.identity();
   const draft = await saveChallenge(fixture.database, admin.viewer, fixture.flagSecret, challengeBody());
   const live = await saveChallenge(fixture.database, admin.viewer, fixture.flagSecret, challengeBody({ status: "published" }));
-  const archived = await saveChallenge(fixture.database, admin.viewer, fixture.flagSecret, challengeBody({ status: "archived" }));
-  expect(await getPlayableChallenge(fixture.database, draft.id)).toBeNull(); expect(await getPlayableChallenge(fixture.database, archived.id)).toBeNull();
+  const deleted = await saveChallenge(fixture.database, admin.viewer, fixture.flagSecret, challengeBody());
+  await deleteChallenge(fixture.database, admin.viewer, deleted.id, 1);
+  expect(await getPlayableChallenge(fixture.database, draft.id)).toBeNull(); expect(await getPlayableChallenge(fixture.database, deleted.id)).toBeNull();
   const document = await getPlayableChallenge(fixture.database, live.id);
   expect(document?.hasHint).toBe(true); expect(document).not.toHaveProperty("hint"); expect(document).not.toHaveProperty("flag_digest"); expect(JSON.stringify(document)).not.toContain("CTF{example}");
   expect((await listPlayableChallenges(fixture.database)).total).toBe(1); expect((await listPlayableChallenges(fixture.database, "", "crypto")).total).toBe(0);

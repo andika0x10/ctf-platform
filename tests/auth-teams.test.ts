@@ -32,7 +32,7 @@ beforeAll(async () => {
   }));
   database = await runtime.getD1Database("DB");
   // D1's exec supports a sequence of one-line statements. Keep trigger bodies intact.
-  for (const name of ["0001_foundation.sql", "0002_auth.sql", "0003_teams.sql"]) {
+  for (const name of ["0001_foundation.sql", "0002_auth.sql", "0003_teams.sql", "0004_challenges.sql", "0005_submissions.sql", "0006_operations.sql", "0007_delete_cascade.sql"]) {
     const sql = await readFile(new URL(`../migrations/${name}`, import.meta.url), "utf8");
     await database.exec(sql.replace(/^--.*$/gm, "").replace(/\n/g, " "));
   }
@@ -183,21 +183,45 @@ describe("team membership and ownership on D1", () => {
     await expect(joinTeam(database, joining.viewer, before)).rejects.toMatchObject({ status: 404 });
     await joinTeam(database, joining.viewer, after);
   });
-  it("requires transfer before the owner leaves and preserves team events when a member moves", async () => {
+  it("automatically transfers ownership when the creator leaves and preserves team events", async () => {
     const owner = await identity(); const member = await identity();
     const id = await createTeam(database, owner.viewer, `Transfer ${crypto.randomUUID().slice(0, 6)}`);
     await joinTeam(database, member.viewer, (await getTeamDetails(database, id, owner.viewer))!.inviteCode);
-    await expect(updateTeam(database, owner.viewer, id, { action: "leave" })).rejects.toMatchObject({ status: 409 });
-    await expect(updateTeam(database, owner.viewer, id, { action: "archive" })).rejects.toMatchObject({ status: 409 });
-    await updateTeam(database, owner.viewer, id, { action: "transfer-owner", userId: member.viewer.id });
-    await expect(updateTeam(database, owner.viewer, id, { action: "rename", name: "Former owner" })).rejects.toMatchObject({ status: 403 });
     await updateTeam(database, owner.viewer, id, { action: "leave" });
+    await expect(updateTeam(database, owner.viewer, id, { action: "rename", name: "Former owner" })).rejects.toMatchObject({ status: 403 });
     await createTeam(database, owner.viewer, `New Home ${crypto.randomUUID().slice(0, 6)}`);
     const original = await getTeamDetails(database, id, member.viewer);
     expect(original?.ownerUserId).toBe(member.viewer.id);
     expect(original?.events.some((event) => event.kind === "created")).toBe(true);
     expect(original?.events.some((event) => event.kind === "left")).toBe(true);
     expect(original?.members.length).toBe(1);
+    expect(original?.events.filter(event => event.kind === "ownership_transferred")).toHaveLength(1);
+  });
+  it("chooses the longest-serving member and serializes concurrent departures", async () => {
+    const owner = await identity(); const oldest = await identity(); const newest = await identity();
+    const id = await createTeam(database, owner.viewer, `Departures ${crypto.randomUUID().slice(0, 6)}`);
+    const code = (await getTeamDetails(database, id, owner.viewer))!.inviteCode;
+    await joinTeam(database, oldest.viewer, code); await joinTeam(database, newest.viewer, code);
+    await database.prepare("UPDATE team_members SET joined_at=? WHERE user_id=?").bind("2026-01-01T00:00:00.000Z", oldest.viewer.id).run();
+    await updateTeam(database, owner.viewer, id, { action: "leave" });
+    expect((await getCurrentTeam(database, oldest.viewer))?.ownerUserId).toBe(oldest.viewer.id);
+    await Promise.all([oldest, newest].map(person => updateTeam(database, person.viewer, id, { action: "leave" })));
+    expect(await getCurrentTeam(database, oldest.viewer)).toBeNull();
+    expect(await getCurrentTeam(database, newest.viewer)).toBeNull();
+    expect(await database.prepare("SELECT id FROM teams WHERE id=?").bind(id).first()).toBeNull();
+    expect((await database.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
+  });
+  it("rejects team deletion by members and outsiders and removes the archive action", async () => {
+    const owner = await identity(); const member = await identity(); const outsider = await identity();
+    const id = await createTeam(database, owner.viewer, `Delete guard ${crypto.randomUUID().slice(0, 6)}`);
+    await joinTeam(database, member.viewer, (await getTeamDetails(database, id, owner.viewer))!.inviteCode);
+    for (const person of [member, outsider]) {
+      expect((await teamActionRoute(request(`/api/teams/${id}`, person.cookie, { action: "delete" }, "PATCH"), context(id))).status).toBe(403);
+    }
+    expect((await teamActionRoute(request(`/api/teams/${id}`, owner.cookie, { action: "archive" }, "PATCH"), context(id))).status).toBe(400);
+    expect((await teamActionRoute(request(`/api/teams/${id}`, owner.cookie, { action: "delete" }, "PATCH", "https://evil.test"), context(id))).status).toBe(403);
+    expect((await teamActionRoute(request(`/api/teams/${id}`, owner.cookie, { action: "delete" }, "PATCH"), context(id))).status).toBe(200);
+    expect(await getCurrentTeam(database, member.viewer)).toBeNull();
   });
   it("allows the owner to remove a member, but protects the current owner", async () => {
     const owner = await identity(); const member = await identity();
@@ -207,7 +231,7 @@ describe("team membership and ownership on D1", () => {
     await updateTeam(database, owner.viewer, id, { action: "remove-member", userId: member.viewer.id });
     expect(await getCurrentTeam(database, member.viewer)).toBeNull();
   });
-  it("supports more than five members and lets a sole owner archive a team", async () => {
+  it("supports more than five members and deletes the team when its last member leaves", async () => {
     const owner = await identity();
     const id = await createTeam(database, owner.viewer, `Unlimited ${crypto.randomUUID().slice(0, 6)}`);
     const code = (await getTeamDetails(database, id, owner.viewer))!.inviteCode;
@@ -219,26 +243,24 @@ describe("team membership and ownership on D1", () => {
 
     const solo = await identity();
     const soloId = await createTeam(database, solo.viewer, `Solo ${crypto.randomUUID().slice(0, 6)}`);
-    await updateTeam(database, solo.viewer, soloId, { action: "archive" });
+    await updateTeam(database, solo.viewer, soloId, { action: "leave" });
     expect(await getCurrentTeam(database, solo.viewer)).toBeNull();
     const record = await database.prepare("SELECT status FROM teams WHERE id = ?").bind(soloId).first<{ status: string }>();
-    expect(record?.status).toBe("archived");
+    expect(record).toBeNull();
+    expect(await database.prepare("SELECT COUNT(*) AS n FROM team_events WHERE team_id=?").bind(soloId).first("n")).toBe(0);
   });
-  it("lets organizers help teams and archives without deleting their history", async () => {
+  it("lets organizers delete teams and cascades memberships and events", async () => {
     const organizer = await identity("organizer@example.test"); const owner = await identity(); const member = await identity();
     expect(organizer.viewer.role).toBe("organizer");
-    const id = await createTeam(database, owner.viewer, `Archive ${crypto.randomUUID().slice(0, 6)}`);
+    const id = await createTeam(database, owner.viewer, `Delete ${crypto.randomUUID().slice(0, 6)}`);
     const code = (await getTeamDetails(database, id, owner.viewer))!.inviteCode;
     await joinTeam(database, member.viewer, code);
     await updateTeam(database, organizer.viewer, id, { action: "rename", name: `Helped ${crypto.randomUUID().slice(0, 6)}` });
-    await updateTeam(database, organizer.viewer, id, { action: "archive" });
-    const archived = await getTeamDetails(database, id, organizer.viewer);
-    expect(archived?.status).toBe("archived");
-    expect(archived?.members.length).toBe(0);
-    expect(archived?.events.some((event) => event.kind === "created")).toBe(true);
-    expect(archived?.events.some((event) => event.kind === "archived")).toBe(true);
+    await updateTeam(database, organizer.viewer, id, { action: "delete" });
+    expect(await getTeamDetails(database, id, organizer.viewer)).toBeNull();
+    expect(await database.prepare("SELECT COUNT(*) AS n FROM team_events WHERE team_id=?").bind(id).first("n")).toBe(0);
     expect(await getCurrentTeam(database, owner.viewer)).toBeNull();
     await expect(joinTeam(database, member.viewer, code)).rejects.toMatchObject({ status: 404 });
-    await createTeam(database, owner.viewer, `After archive ${crypto.randomUUID().slice(0, 6)}`);
+    await createTeam(database, owner.viewer, `After deletion ${crypto.randomUUID().slice(0, 6)}`);
   });
 });
