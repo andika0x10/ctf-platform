@@ -38,6 +38,11 @@ export default defineConfig({
         exportName: "ParticipantCoordinator",
       }),
       APP_ENV: bindings.text(process.env.APP_ENV || "development"),
+      BETTER_AUTH_SECRET: bindings.secret(),
+      BETTER_AUTH_URL: bindings.secret(),
+      GOOGLE_CLIENT_ID: bindings.secret(),
+      GOOGLE_CLIENT_SECRET: bindings.secret(),
+      ORGANIZER_EMAILS: bindings.secret(),
     },
   }),
 });

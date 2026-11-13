@@ -5,6 +5,7 @@
 	"packageManager": "npm",
 	"dependencies": {
 		"@vinext/cloudflare": "latest",
+		"better-auth": "1.7.22",
 		"react": "latest",
 		"react-dom": "latest",
 		"react-server-dom-webpack": "latest",
@@ -20,6 +21,7 @@
 		"@vitejs/plugin-rsc": "latest",
 		"cf": "^1.0.0-beta.31",
 		"happy-dom": "21.0.4",
+		"miniflare": "5.20261110.2-beta",
 		"tailwindcss": "latest",
 		"typescript": "latest",
 		"vite": "8.3.8",
@@ -41,6 +43,9 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"db:migrate:local": "cf d1 migrations apply 3d05ae4a-7641-4bc7-8c46-08edc42f201d --local --dir migrations",
-		"check:foundation": "node scripts/check-foundation.mjs"
+		"check:foundation": "node scripts/check-foundation.mjs",
+		"auth:setup": "node scripts/setup-auth.mjs",
+		"auth:schema": "node scripts/generate-auth-schema.mjs",
+		"check:auth-teams": "node scripts/check-auth-teams.mjs"
 	}
 }

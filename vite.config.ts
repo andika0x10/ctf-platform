@@ -12,5 +12,12 @@ export default defineConfig({
         childEnvironments: ["ssr"],
       },
     }),
+    {
+      name: "stable-rsc-auth-dependencies",
+      enforce: "post",
+      // On-demand optimization can invalidate modules while the Cloudflare runner
+      // imports Better Auth. Keep vinext's explicit includes; load other ESM as-is.
+      config: () => ({ environments: { rsc: { optimizeDeps: { noDiscovery: true } } } }),
+    },
   ],
 });

@@ -1,6 +1,8 @@
-# Copy to .dev.vars when working on milestone 3. No secrets are needed for milestones 1–2.
-# BETTER_AUTH_SECRET=generate-a-random-secret
-# BETTER_AUTH_URL=http://localhost:5173
-# GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_SECRET=
-# ORGANIZER_EMAILS=
+# Run npm run auth:setup to create .dev.vars with a random application secret.
+# Obtain a Google OAuth Web application client and set its credentials below.
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:5173
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Comma-separated Google email addresses; only verified matching accounts become organizers.
+ORGANIZER_EMAILS=

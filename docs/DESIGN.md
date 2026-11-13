@@ -31,8 +31,8 @@ yang lapang. Angka hanya dipakai untuk urutan langkah bermain.
 - Escape mengembalikan fokus ke pemicu. Tab memakai urutan tautan HTML biasa.
 - Di bawah 768px, tombol Menu membuka navigasi dan kelompok menjadi accordion.
 - Kelompok Panitia tersedia jika `SiteHeader` menerima role `organizer` dari server.
-  Root layout saat ini memakai mode pengunjung. Jangan mengambil role dari URL
-  atau localStorage saat autentikasi ditambahkan pada milestone 3.
+  Root layout membaca viewer dari sesi D1 dan meneruskan role hasil pemeriksaan
+  server. Jangan mengambil role dari URL atau localStorage.
 - Gunakan disclosure buttons dengan `aria-expanded`/`aria-controls`, bukan ARIA
   menu untuk navigasi situs. Link halaman aktif memakai `aria-current`.
 - Skip link, fokus keyboard, bahasa dokumen Indonesia, dan reduced motion disediakan.
@@ -41,7 +41,7 @@ yang lapang. Angka hanya dipakai untuk urutan langkah bermain.
 
 Pada 320px, 390px, 768px, dan 1440px: periksa pembungkusan navbar dan judul,
 ketajaman font, panel menu, fokus keyboard, serta overflow horizontal.
-  Browser automation tidak tersedia pada sesi implementasi awal; screenshot
+Browser automation tidak tersedia pada sesi implementasi awal; screenshot
 dan pengujian interaksi browser belum dilakukan.
 
 Tujuh pengujian DOM komponen navigasi tersedia melalui `npm test`. Pengujian
