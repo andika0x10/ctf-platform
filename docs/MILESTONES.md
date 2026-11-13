@@ -7,7 +7,7 @@
 | 3 | Google login, sesi, dua role, nama tampilan | Diimplementasikan; sesi, guard, dan inisiasi OAuth terverifikasi; consent/callback Google nyata perlu browser |
 | 4 | Pembuatan dan pengelolaan tim | Diimplementasikan dan diverifikasi pada D1 serta HTTP lokal; QA visual browser belum tersedia |
 | 5 | Pengelolaan challenge oleh panitia | Selesai; TypeScript, 26 tes, migrasi lokal, dan build lulus |
-| 6 | Daftar/detail challenge dan pengalaman peserta | Belum dikerjakan |
+| 6 | Daftar/detail challenge dan pengalaman peserta | Selesai; TypeScript, 27 tes, dan build lulus |
 | 7 | Validasi flag, skor dinamis, rate limit | Belum dikerjakan |
 | 8 | Peringkat, profil tim, riwayat | Belum dikerjakan |
 | 9 | Operasional panitia, pengumuman, pengaturan | Belum dikerjakan |
@@ -70,3 +70,12 @@ pengujian dibersihkan dari database lokal setelah pemeriksaan.
   role panitia, onboarding, origin, ukuran badan, dan semua field masukan.
 - TypeScript, 26 tes, migrasi lokal, dan build produksi lulus. QA visual
   browser tetap belum tersedia.
+
+## Implementasi 6
+
+- Daftar challenge dengan pencarian, kategori, pagination 50 item, serta detail
+  Markdown, target, unduhan eksternal, dan hint gratis yang dibuka sesuai kebutuhan.
+- Query peserta memilih field yang aman dan hanya status terbit. Draft/arsip
+  tidak tersedia melalui detail maupun endpoint hint. Hint memerlukan sesi.
+- Peserta tanpa tim tetap dapat membaca challenge dan diarahkan ke pengelolaan tim.
+- TypeScript, 27 tes, dan build produksi lulus.
