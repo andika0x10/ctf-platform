@@ -1,67 +1,70 @@
-const links = [
-  {
-    href: "https://github.com/cloudflare/vinext",
-    label: "vinext",
-  },
-  {
-    href: "https://developers.cloudflare.com/workers/",
-    label: "Workers",
-  },
+import Link from "next/link";
+import { ArrowIcon, CategoryIcon, PixelFlag } from "@/components/pixel-icons";
+
+const categories = [
+  { slug: "web", name: "Web", description: "Celah di balik halaman." },
+  { slug: "crypto", name: "Crypto", description: "Pesan di balik sandi." },
+  { slug: "forensics", name: "Forensics", description: "Jejak di dalam data." },
+  { slug: "reverse", name: "Reverse", description: "Logika di balik program." },
+  { slug: "misc", name: "Misc", description: "Di luar dugaanmu." },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
-      <section className="mx-auto flex max-w-4xl flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-            vinext + Cloudflare Workers
-          </p>
-          <h1 className="max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
-            Build Next.js-style apps with Vite and deploy them to the edge.
-          </h1>
-          <p className="max-w-2xl text-lg leading-8 text-slate-700">
-            This App Router project is wired for vinext, Tailwind CSS, and Cloudflare Workers.
-          </p>
+    <main id="main-content" tabIndex={-1}>
+      <section className="shell hero" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <p className="hero-intro"><span className="status-square" aria-hidden="true" />Ruang latihan Capture the Flag</p>
+          <h1 id="hero-title">Cari celah.<br />Temukan flag.</h1>
+          <p className="hero-description">Ikuti rasa ingin tahumu. Pecahkan tantangan keamanan siber bersama tim, dengan ritmemu sendiri.</p>
+          <div className="hero-actions">
+            <Link href="/challenges" className="button">Lihat challenges<ArrowIcon /></Link>
+            <a href="#cara-bermain" className="text-link">Cara bermain</a>
+          </div>
+          <p className="hero-note">Berbasis tim. Tanpa batas waktu.</p>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
-            <h2 className="font-semibold">Develop</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Run the vinext dev server locally.</p>
-            <code className="mt-4 block rounded bg-slate-100 px-3 py-2 text-sm">pnpm run dev</code>
+        <figure className="flag-figure" aria-label="Ilustrasi flag CTF bermotif kotak-kotak">
+          <div className="flag-canvas">
+            <span className="canvas-corner corner-tl" aria-hidden="true" />
+            <span className="canvas-corner corner-tr" aria-hidden="true" />
+            <PixelFlag className="hero-flag" width="192" height="192" />
+            <span className="canvas-corner corner-bl" aria-hidden="true" />
+            <span className="canvas-corner corner-br" aria-hidden="true" />
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
-            <h2 className="font-semibold">Build</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Create Worker-ready production output.</p>
-            <code className="mt-4 block rounded bg-slate-100 px-3 py-2 text-sm">pnpm run build</code>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
-            <h2 className="font-semibold">Deploy</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Ship the generated Worker with cf.</p>
-            <code className="mt-4 block rounded bg-slate-100 px-3 py-2 text-sm">pnpm run deploy</code>
+          <figcaption>CTF&#123;keep_learning&#125;</figcaption>
+        </figure>
+      </section>
+      <section className="category-section" aria-labelledby="categories-title">
+        <div className="shell">
+          <div className="section-heading"><h2 id="categories-title">Banyak jalan menuju flag.</h2><p>Mulai dari yang membuatmu penasaran.</p></div>
+          <div className="category-grid">
+            {categories.map((category) => (
+              <Link key={category.slug} href={`/challenges?category=${category.slug}`} className="category-link">
+                <CategoryIcon category={category.slug} /><h3>{category.name}</h3><p>{category.description}</p>
+                <span className="category-arrow"><ArrowIcon /></span>
+              </Link>
+            ))}
           </div>
         </div>
-
-        <nav className="flex flex-wrap gap-3">
-          {links.map((link) => (
-            <a
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-100"
-              href={link.href}
-              key={link.href}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {link.label}
-            </a>
-          ))}
-          <a
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-100"
-            href="/api/hello"
-          >
-            API route
-          </a>
-        </nav>
+      </section>
+      <section id="cara-bermain" className="shell how-section" aria-labelledby="how-title">
+        <div className="how-heading">
+          <h2 id="how-title">Dari penasaran<br />jadi penemuan.</h2>
+          <p>Capture the Flag adalah latihan memecahkan persoalan keamanan siber. Flag menjadi bukti bahwa kamu berhasil menemukan jawabannya.</p>
+          <Link href="/rules" className="text-link">Baca aturan bermain<ArrowIcon /></Link>
+        </div>
+        <ol className="steps">
+          <li><span className="step-number" aria-hidden="true">1</span><div><h3>Temukan timmu</h3><p>Masuk dengan Google, lalu buat tim atau bergabung lewat kode dari temanmu.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">2</span><div><h3>Pilih tantangan</h3><p>Baca soal, jelajahi berkas, dan diskusikan pendekatanmu. Hint tersedia saat kamu membutuhkannya.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">3</span><div><h3>Kirim flag</h3><p>Jawaban yang tepat menambah progres dan skor tim. Lalu, lanjutkan ke penemuan berikutnya.</p></div></li>
+        </ol>
+      </section>
+      <section id="tentang" className="about-section" aria-labelledby="about-title">
+        <div className="shell about-inner">
+          <PixelFlag width="40" height="40" /><h2 id="about-title">Ruang untuk mencoba.<br />Ruang untuk bertumbuh.</h2>
+          <p>Tidak harus langsung tahu jawabannya. Mulai dari satu soal, pelajari hal baru, dan temukan cara berpikirmu bersama tim.</p>
+          <Link href="/login" className="button button-outline">Mulai bersama tim<ArrowIcon /></Link>
+        </div>
       </section>
     </main>
   );

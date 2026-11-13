@@ -1,0 +1,6 @@
+# Copy to .dev.vars when working on milestone 3. No secrets are needed for milestones 1–2.
+# BETTER_AUTH_SECRET=generate-a-random-secret
+# BETTER_AUTH_URL=http://localhost:5173
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# ORGANIZER_EMAILS=
