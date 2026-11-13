@@ -1,26 +1,21 @@
 # CTF Platform
 
-Ruang latihan CTF berkelanjutan berbasis tim. Antarmuka memakai Press Start 2P,
-latar putih, ruang kosong luas, dan top navbar dengan mega menu.
+Ruang latihan Jeopardy CTF berkelanjutan berbasis tim, dengan dua role: peserta
+dan panitia. UI berbahasa Indonesia memakai Press Start 2P lokal, warna putih,
+ruang kosong luas, dan top navbar dengan mega menu di seluruh halaman.
 
-Stack: vinext, React, TypeScript, Tailwind CSS, Cloudflare Workers, D1, dan Durable
-Objects SQLite. Tidak ada binding R2, KV, atau Images. Lampiran challenge nantinya
-berupa tautan unduhan.
+Stack: vinext, React, TypeScript, Cloudflare Workers, D1, dan Durable Objects
+SQLite. Lampiran berupa tautan HTTPS eksternal; tidak ada upload, R2, atau KV.
 
-## Status
-
-Milestone 1–4 sudah diimplementasikan: fondasi penyimpanan, desain/navigasi,
-autentikasi Google, nama tampilan, dua role, dan pengelolaan tim. Challenge,
-pengiriman flag, skor, serta peringkat menyusul pada milestone berikutnya.
-Lihat [daftar milestone](docs/MILESTONES.md) dan [panduan desain](docs/DESIGN.md).
-
-Consent dan callback Google dengan akun sungguhan serta QA visual desktop/mobile
-belum diverifikasi: browser automation tidak tersedia pada sesi implementasi.
-Inisiasi OAuth, sesi, otorisasi, dan operasi tim telah diuji secara otomatis.
+Milestone 1–10 sudah diimplementasikan dan di-commit. Lihat
+[milestone](docs/MILESTONES.md), [desain](docs/DESIGN.md),
+[hasil verifikasi](docs/VERIFICATION.md), dan [deployment](docs/DEPLOYMENT.md).
+Consent/callback Google sungguhan serta QA visual desktop/mobile masih perlu
+pemeriksaan browser; browser automation tidak tersedia pada sesi implementasi.
 
 ## Menjalankan lokal
 
-Gunakan Node.js 22.18+ dan npm:
+Gunakan Node.js 22.18+ dan npm. Versi dependency terkunci di package-lock.json.
 
 ```sh
 npm ci
@@ -29,93 +24,98 @@ npm run db:migrate:local
 npm run auth:setup
 ```
 
-`auth:setup` membuat `.dev.vars` bila belum ada, mengisi secret aplikasi acak bila
-belum valid, dan mempertahankan konfigurasi Google yang sudah terisi. Nilai
-secret tidak ditampilkan. `.dev.vars` diabaikan Git.
-
-Isi konfigurasi Google di `.dev.vars`, lalu jalankan:
+`auth:setup` membuat `.dev.vars` dan dua secret acak jika belum valid, sambil
+mempertahankan konfigurasi Google yang sudah terisi. Nilai secret tidak dicetak.
+Isi Google OAuth dan email panitia dalam file tersebut, lalu jalankan:
 
 ```sh
 npm run dev -- --host localhost --port 5173 --strictPort
 ```
 
-Buka `http://localhost:5173`. Gunakan host dan port yang sama dengan
-`BETTER_AUTH_URL`, termasuk ketika menjalankan preview build. Data lokal CLI dan
-Vite disimpan di `.cloudflare/state` dan tetap tersedia setelah restart.
+Buka `http://localhost:5173`. Data lokal CLI dan Vite berbagi
+`.cloudflare/state`, tetap tersedia setelah restart. `.dev.vars` diabaikan Git.
 
-## Google OAuth dan role
-
-Di Google Cloud Console, buat OAuth client bertipe **Web application** dan
-tambahkan authorized redirect URI:
+Daftarkan Google OAuth Web client redirect URI:
 
 ```text
 http://localhost:5173/api/auth/callback/google
 ```
 
-Konfigurasi runtime:
+Jika consent screen masih testing, akun Google perlu berada dalam daftar test
+users. Gunakan origin yang sama dengan `BETTER_AUTH_URL`, termasuk saat preview.
 
-| Nama | Penggunaan |
+| Konfigurasi | Kegunaan |
 | --- | --- |
-| `BETTER_AUTH_SECRET` | Secret acak aplikasi, minimal 32 karakter; dibuat oleh `auth:setup` |
-| `BETTER_AUTH_URL` | Origin aplikasi, default lokal `http://localhost:5173` |
-| `GOOGLE_CLIENT_ID` | OAuth Web client ID dari Google |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret dari Google |
-| `ORGANIZER_EMAILS` | Email panitia dipisahkan koma, misalnya `panitia@example.com` |
+| `BETTER_AUTH_URL` | Origin aplikasi, lokal `http://localhost:5173` |
+| `BETTER_AUTH_SECRET` | Secret sesi minimal 32 karakter acak |
+| `FLAG_SIGNING_SECRET` | Secret berbeda untuk digest flag, minimal 32 karakter acak |
+| `GOOGLE_CLIENT_ID` | Google OAuth Web client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `ORGANIZER_EMAILS` | Email panitia terverifikasi, dipisahkan koma |
 
-Jika consent screen Google masih dalam mode testing, tambahkan akun yang akan
-dipakai ke daftar test users pada proyek Google tersebut. Gunakan URL callback
-produksi terpisah ketika menyiapkan domain produksi.
+Pertahankan `FLAG_SIGNING_SECRET` setelah membuat challenge. Rotasi tanpa
+memasukkan ulang seluruh flag membuat flag lama tidak dapat divalidasi.
+Tidak ada endpoint login demo atau cara masuk yang melewati Google.
 
-Role ditentukan server dari email Google terverifikasi dan allowlist, bukan
-isian formulir atau localStorage. Hanya ada `participant` dan `organizer`;
-pemilik tim merupakan hubungan kepemilikan. Perubahan allowlist berlaku pada
-pemeriksaan akses berikutnya setelah konfigurasi runtime dimuat ulang.
+## Fitur dan aturan
 
-Setelah masuk pertama kali, peserta/panitia memilih nama tampilan. Nama asli
-dan foto Google tidak langsung menjadi profil publik. Email hanya tampil pada
-akun pribadi. Data otorisasi dan status suspend diperiksa dari sesi D1 tanpa
-cookie cache. Cookie sesi HttpOnly, SameSite=Lax, Secure untuk HTTPS; refresh
-sesi ditangani SDK di browser agar rendering server tidak menulis cookie.
-
-Tanpa konfigurasi OAuth yang lengkap, halaman publik tetap dapat dibuka dan
-halaman login menjelaskan bahwa akses belum tersedia. Tidak ada login demo
-atau endpoint yang melewati Google.
-
-## Tim
-
-- Satu peserta hanya memiliki satu keanggotaan aktif, dijaga primary key D1.
-- Anggota tim tanpa batas; pemilik dapat membagikan kode acak 128-bit.
-- Kode hanya dapat dilihat pemilik dan panitia. Kode lama tidak berlaku setelah rotasi.
-- Pemilik dapat mengganti nama, mengeluarkan anggota, dan mengalihkan kepemilikan
-  kepada anggota aktif. Anggota biasa dapat keluar dan pindah tim.
+- Google login, sesi HttpOnly, SameSite=Lax dan Secure pada HTTPS; onboarding
+  nama tampilan. Nama/foto asli Google tidak langsung menjadi profil publik.
+- Role dihitung server dari email terverifikasi dan allowlist. Pemilik tim
+  merupakan hubungan kepemilikan, bukan role ketiga.
+- Satu keanggotaan aktif per peserta, anggota tanpa batas, kode acak 128-bit
+  yang hanya terlihat oleh pemilik/panitia. Rotasi kode, transfer pemilik,
+  keluarkan anggota, keluar/pindah, dan arsip tersedia.
 - Pemilik harus mengalihkan kepemilikan sebelum keluar. Pemilik terakhir dapat
-  mengarsipkan tim. Panitia dapat membantu melalui `/admin/teams`.
-- Arsip menutup keanggotaan/pengiriman baru dan melepaskan anggota aktif;
-  catatan tim dan aktivitas dipertahankan. Riwayat tidak berpindah ketika anggota pindah.
-- Nama tim tetap unik, termasuk nama tim yang diarsipkan.
+  mengarsipkan tim; panitia dapat membantu tim beranggota melalui `/admin/teams`.
+- Arsip melepas anggota aktif dan menutup pengiriman baru. Solve dan skor tetap
+  menjadi milik tim lama ketika anggota pindah; nama tim arsip tetap dicadangkan.
+- Editor challenge: kategori, kesulitan, Markdown aman, target, hint gratis,
+  tautan unduhan, pengaturan skor, flag, serta draft/terbit/arsip. Konflik revisi
+  ditolak. Challenge yang sudah dimainkan tidak dapat dikembalikan menjadi draft.
+- Peserta dapat mencari dan memfilter challenge menurut kategori/progres,
+  membaca detail, membuka hint, dan mengirim flag setelah bergabung dengan tim.
+- Flag case-sensitive setelah trim; disimpan sebagai HMAC SHA-256 terikat ID
+  challenge. Jawaban tidak disimpan pada riwayat atau log. Uji flag panitia
+  tidak menghasilkan solve/pengiriman peserta.
+- Rate limit: 10 percobaan per peserta/challenge dalam jendela 60 detik, disimpan
+  pada Durable Object SQLite per peserta. Respons 429 menyertakan Retry-After.
+- Penulisan submission/solve bersifat atomik di D1, termasuk pemeriksaan ulang
+  membership, status akun, status/revisi challenge, serta satu solve per tim.
+- Peringkat dan profil tim publik, riwayat pribadi dan tim, polling 30 detik
+  ketika tab terlihat, pagination, serta ekspor peringkat CSV oleh panitia.
+- Ringkasan panitia, pencarian akun/pengiriman, suspend dengan pencabutan seluruh
+  sesi, pengumuman Markdown, nama platform, aturan, dan buka/tutup pendaftaran.
 
-Semua operasi terkait menggunakan transaksi batch D1. Otorisasi dan kondisi
-keanggotaan diperiksa lagi dalam SQL pada transaksi yang menulis perubahan;
-tidak ada transaksi yang dibagi antara D1 dan Durable Object.
+Skor challenge untuk `n` tim yang sudah solve:
 
-## Endpoint aplikasi
+```text
+n >= decay: minimum
+n < decay: initial - floor((initial - minimum) * n² / decay²)
+```
 
-| Endpoint | Fungsi |
+Default: initial 500, minimum 100, decay 50. Semua tim yang sudah solve mendapat
+nilai saat ini yang sama. Solve tim/soal arsip tetap dihitung. Mengubah parameter
+challenge menghitung ulang skor seluruh tim. Tie-break peringkat: skor menurun,
+waktu solve terakhir lebih awal, lalu ID tim. Tim tanpa solve diurutkan ID.
+
+## Halaman
+
+| Akses | Halaman |
 | --- | --- |
-| `/api/auth/*` | Handler Better Auth: Google OAuth, sesi, logout |
-| `PATCH /api/profile` | Validasi nama tampilan dan penyelesaian onboarding |
-| `GET /api/teams` | Tim peserta yang sedang masuk |
-| `POST /api/teams` | Membuat tim |
-| `POST /api/teams/join` | Bergabung menggunakan kode |
-| `GET /api/teams/:id` | Detail untuk anggota tim atau panitia |
-| `PATCH /api/teams/:id` | Aksi rename, rotate-invite, transfer-owner, remove-member, leave, archive |
-| `GET /api/health` | Pemeriksaan koneksi D1 dan RPC Durable Object |
+| Publik | `/`, `/rules`, `/scoreboard`, `/teams/:id`, `/announcements`, `/login` |
+| Akun | `/account` termasuk riwayat pribadi |
+| Peserta/panitia dengan profil lengkap | `/challenges`, `/challenges/:id` |
+| Peserta | `/team`, `/team/history` |
+| Panitia | `/admin`, `/admin/challenges`, `/admin/challenges/new`, `/admin/challenges/:id` |
+| Panitia | `/admin/teams`, `/admin/teams/:id`, `/admin/participants`, `/admin/submissions` |
+| Panitia | `/admin/announcements`, `/admin/announcements/new`, `/admin/announcements/:id`, `/admin/settings` |
 
-API profil/tim memakai JSON, respons `Cache-Control: no-store`, pemeriksaan Origin
-untuk mutasi, validasi field, dan batas body 8 KiB. Field role, status suspend,
-serta penyelesaian profil tidak dapat diatur klien lewat Better Auth.
-Rate limit autentikasi memakai penyimpanan D1 dan header IP Cloudflare;
-rate limit pengiriman flag memakai Durable Objects pada milestone 7.
+Halaman akun/panitia tidak dicache publik. Semua mutasi aplikasi memeriksa sesi,
+role, origin, field masukan, dan batas badan JSON (8 KiB; editor/settings 128 KiB).
+Email hanya terlihat di akun pribadi dan daftar akun panitia. Profil tim serta
+CSV tidak memuat email, kode undangan, ataupun flag. HTML mentah dan gambar
+Markdown dinonaktifkan; CSV menangani escaping formula spreadsheet.
 
 ## Pengujian
 
@@ -123,71 +123,61 @@ rate limit pengiriman flag memakai Durable Objects pada milestone 7.
 npm run typecheck
 npm test
 npm run build
+npm audit --audit-level=low
 ```
 
-Tes mencakup navigasi DOM serta integrasi Better Auth/D1 pada Miniflare terisolasi:
-sesi palsu/kedaluwarsa/dicabut, suspend, CSRF, role, onboarding, privasi kode,
-persaingan create/join, keunikan nama, rotasi kode, kepemilikan, dan arsip.
-Tes integrasi tidak menggunakan database pengguna atau akun Google sungguhan.
+Tes menggunakan DOM serta D1 dan RPC Durable Object nyata dalam Miniflare
+terisolasi. Suite mencakup sesi, CSRF, role, balapan membership/pengiriman,
+perubahan akun/challenge saat submission, skor, privasi, moderasi, dan pemulihan
+limiter setelah restart.
 
-Dengan dev server berjalan dan `.dev.vars` sudah diisi:
+Dengan server dev atau preview berjalan pada origin lokal yang dikonfigurasi:
 
 ```sh
 npm run check:foundation
 npm run check:auth-teams
+npm run check:platform
 ```
 
-`check:foundation` menguji health D1/Durable Object, halaman, 404, dan font lokal.
-`check:auth-teams` menguji HTML terautentikasi dan operasi tim melalui HTTP,
-menggunakan identitas sementara pada **database lokal**, lalu membersihkannya.
-Script menolak origin selain HTTP loopback dan selalu memakai `cf --local`.
-Secret aplikasi dibaca hanya di proses pemeriksaan, tanpa dicetak atau dimasukkan
-ke argumen CLI. Nilai fixture sementara disimpan dalam file yang diabaikan Git
-dan dihapus setelah selesai. Script juga memeriksa URL/state Google tanpa
-mengikuti consent Google atau menyamar sebagai akun Google di aplikasi.
+`check:platform` membuat 100 identitas lokal dan 50 tim sementara, mengirim flag
+bersamaan, memeriksa alur panitia/peserta, lalu membersihkan fixture D1. Dibutuhkan
+satu email yang belum terdaftar pada allowlist **lokal** untuk fixture panitia;
+script tidak menyamar sebagai akun yang sudah ada. Secret dibaca dalam proses,
+bukan dicetak atau dikirim lewat argumen CLI. Semua SQL fixture memakai `--local`
+dan UUID yang dimiliki pemeriksaan. Script menolak origin selain HTTP loopback.
+Objek limiter lokal untuk UUID fixture dapat tetap berada dalam state lokal.
 
-Jika origin berbeda, tentukan `CHECK_ORIGIN`. Untuk pengujian OAuth runtime,
-jalankan server pada origin yang sama dengan `BETTER_AUTH_URL`.
+Untuk preview:
 
-```powershell
-$env:CHECK_ORIGIN = 'http://localhost:5173'
-npm run check:auth-teams
+```sh
+npm run build
+npm run start -- --host localhost --port 5173 --strictPort
 ```
 
-## Migrasi dan struktur
+`CHECK_ORIGIN` dapat mengganti origin pemeriksaan. Metrik simulasi tersimpan di
+`.cloudflare/load-dev.json` atau `load-preview.json` jika `CHECK_LABEL=preview`.
+Inisiasi OAuth diperiksa tanpa mengikuti consent Google.
 
-- `0001_foundation.sql`: pengaturan platform dan kategori.
-- `0002_auth.sql`: skema yang digenerasikan dari Better Auth 1.7.22.
-- `0003_teams.sql`: tim, keanggotaan, aktivitas, dan constraint kepemilikan.
+## Struktur dan deployment
 
-Migrasi dapat dijalankan ulang; hanya file yang belum tercatat yang diterapkan.
-`npm run auth:schema` meregenerasikan **skema awal** 0002 dari database terisolasi
-untuk pemeliharaan versi auth ini. Untuk mengubah skema yang sudah diterapkan,
-tambahkan migrasi baru dan jangan menulis ulang migrasi yang sudah digunakan.
+Migrasi 0001: settings/kategori; 0002: Better Auth; 0003: tim; 0004: challenge;
+0005: submissions/solves; 0006: pengumuman/aturan. Migrasi hanya diterapkan sekali.
+Untuk perubahan skema, tambahkan migrasi baru. `auth:schema` hanya meregenerasikan
+skema awal Better Auth 1.7.22 pada database terisolasi, bukan upgrade database.
 
-`lib/auth` menyediakan konfigurasi, factory per request, viewer, dan guard.
-`lib/teams.ts` memusatkan aturan tim dan transaksi. `components` berisi UI bersama;
-`worker.ts` meneruskan handler vinext serta mengekspor `ParticipantCoordinator`.
-Durable Object menyiapkan penyimpanan SQLite dan health check; rate limit flag
-diimplementasikan pada milestone 7.
+`lib/auth`, `lib/teams.ts`, `lib/challenges.ts`, `lib/submissions.ts`,
+`lib/scoring.ts`, `lib/standings.ts`, dan `lib/operations.ts` memusatkan aturan.
+`worker.ts` meneruskan handler vinext, menambahkan header keamanan, dan
+mengekspor Durable Object. Binding types dihasilkan oleh `cf-typegen`.
 
-Vite mematikan penemuan dependency RSC secara dinamis untuk menghindari invalidasi
-modul Better Auth saat Cloudflare runner sedang memuatnya. Explicit includes
-bawaan vinext tetap digunakan. Build produksi tidak menggunakan optimizer dev ini.
+Vite mematikan penemuan dependency RSC secara dinamis untuk menghindari
+invalidasi modul Better Auth saat cold start; explicit includes vinext tetap
+dipakai. Build produksi tidak memakai optimizer dev ini. Build menghasilkan
+Cloudflare Build Output di `.cloudflare/output`.
 
-## Deployment
-
-Konfigurasi memakai `cf`, bukan Wrangler. Regenerasikan tipe setelah perubahan
-binding dengan `npm run cf-typegen`. `npm run build` menghasilkan Cloudflare Build
-Output di `.cloudflare/output`; `npm run start` menjalankan preview build.
-
-ID database fallback pada konfigurasi hanya mengidentifikasi simulasi lokal.
-Sebelum deployment, tentukan `CLOUDFLARE_D1_DATABASE_ID` dengan database produksi,
-gunakan `APP_ENV=production`, pasang secret runtime, tetapkan origin HTTPS pada
-`BETTER_AUTH_URL`, daftarkan callback produksi di Google, dan terapkan migrasi
-ke database tersebut. `db:migrate:local` tetap hanya menyentuh database lokal.
-Deployment produksi tidak dilakukan sebagai bagian milestone 1–4.
-
-Vite dipasang pada patch 8.3.8. Override `satori > fflate` ke 0.7.5 mengatasi
-advisory ZIP64 pada dependency framework. Jangan mencatat flag, token, cookie,
-atau kredensial dalam log; observability meredaksi query string.
+Deployment memakai `cf` dengan validasi produksi. Isi `.env.production` mengikuti
+contoh, lalu ikuti [panduan deployment](docs/DEPLOYMENT.md). `npm run check:deploy`
+memeriksa konfigurasi; `npm run deploy -- --dry-run` memvalidasi dan membangun
+tanpa upload. `npm run deploy` membangun ulang dengan konfigurasi produksi dan
+mengunggah lewat `cf deploy --prebuilt`. Tidak ada deployment produksi yang
+dilakukan pada sesi implementasi ini.

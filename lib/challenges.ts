@@ -69,10 +69,14 @@ export async function saveChallenge(database: D1Database, viewer: Viewer, secret
   if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau sudah memiliki solve sehingga tidak dapat dijadikan draft. Muat ulang editor; gunakan arsip untuk menyembunyikan challenge yang sudah dimainkan.");
   return { id, revision: Number(input.revision) + 1 };
 }
-export async function listAdminChallenges(database: D1Database, viewer: Viewer, query: string, status: string) {
+export async function listAdminChallenges(database: D1Database, viewer: Viewer, query: string, status: string, page = 1) {
   organizer(viewer);
   const filter = ["draft", "published", "archived"].includes(status) ? status : "";
-  const rows = await database.prepare(`SELECT ${columns} FROM challenges WHERE instr(lower(title), ?) > 0 AND (? = '' OR status = ?) ORDER BY updated_at DESC, id LIMIT 200`)
-    .bind(query.toLowerCase().slice(0, 100), filter, filter).all<ChallengeRow>();
-  return rows.results.map(document);
+  const where = "instr(lower(title), ?) > 0 AND (? = '' OR status = ?)";
+  const params = [query.toLowerCase().slice(0, 100), filter, filter];
+  const [count, rows] = await database.batch([
+    database.prepare(`SELECT count(*) AS total FROM challenges WHERE ${where}`).bind(...params),
+    database.prepare(`SELECT ${columns} FROM challenges WHERE ${where} ORDER BY updated_at DESC,id LIMIT 50 OFFSET ?`).bind(...params, (page - 1) * 50),
+  ]);
+  return { total: Number((count.results[0] as { total: number }).total), challenges: (rows.results as ChallengeRow[]).map(document) };
 }

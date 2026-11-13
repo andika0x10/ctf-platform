@@ -48,6 +48,12 @@ describe("authoritative submissions", () => {
     const limiter = { consume: async () => { await updateTeam(f.database, person.viewer, team, { action: "archive" }); return { allowed: true, retryAfter: 0 }; } };
     await expect(submitFlag(f.database, person.viewer, f.flagSecret, limiter, challenge!.id, "CTF{example}")).rejects.toMatchObject({ status: 409 });
     expect(await f.database.prepare("SELECT count(*) AS n FROM submissions WHERE user_id=?").bind(person.viewer.id).first("n")).toBe(0);
+    await createTeam(f.database, person.viewer, "Revision guard team");
+    const revisionChanged = { consume: async () => { await f.database.prepare("UPDATE challenges SET revision=revision+1 WHERE id=?").bind(challenge!.id).run(); return { allowed: true, retryAfter: 0 }; } };
+    await expect(submitFlag(f.database, person.viewer, f.flagSecret, revisionChanged, challenge!.id, "CTF{example}")).rejects.toMatchObject({ status: 409 });
+    const suspended = { consume: async () => { await f.database.prepare('UPDATE "user" SET suspended=1 WHERE id=?').bind(person.viewer.id).run(); return { allowed: true, retryAfter: 0 }; } };
+    await expect(submitFlag(f.database, person.viewer, f.flagSecret, suspended, challenge!.id, "CTF{example}")).rejects.toMatchObject({ status: 409 });
+    expect(await f.database.prepare("SELECT count(*) AS n FROM submissions WHERE user_id=?").bind(person.viewer.id).first("n")).toBe(0);
     expect((await POST(request("/submit", "", { flag: "test" }), context(challenge!.id))).status).toBe(401);
   });
 });

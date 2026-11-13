@@ -11,7 +11,7 @@
 | 7 | Validasi flag, skor dinamis, rate limit | Selesai; 32 tes termasuk RPC/restart DO, migrasi, TypeScript, dan build lulus |
 | 8 | Peringkat, profil tim, riwayat | Selesai; TypeScript, 33 tes, dan build lulus |
 | 9 | Operasional panitia, pengumuman, pengaturan | Selesai; TypeScript, 35 tes, migrasi lokal, dan build lulus |
-| 10 | Pengujian menyeluruh dan kesiapan deploy | Belum dikerjakan |
+| 10 | Pengujian menyeluruh dan kesiapan deploy | Implementasi selesai; 40 tes dan HTTP dev/preview lulus; QA browser/OAuth nyata masih perlu pemeriksaan manual |
 
 Halaman peserta, peringkat, riwayat, dan operasional panitia menggunakan backend
 nyata. Tidak ada challenge atau skor buatan yang ditampilkan sebagai data nyata.
@@ -119,3 +119,19 @@ pengujian dibersihkan dari database lokal setelah pemeriksaan.
 - Ekspor CSV peringkat hanya untuk panitia, tanpa email/kode/flag, dengan escaping
   formula spreadsheet dan batas eksplisit 10.000 tim.
 - TypeScript, 35 tes, migrasi lokal, dan build produksi lulus.
+
+## Implementasi 10
+
+- 40 tes otomatis, TypeScript, audit dependency (0 kerentanan), dan build lulus.
+- Pemeriksaan HTTP nyata pada cold dev serta preview build produksi, termasuk
+  halaman panitia, privasi draft/flag, pendaftaran, pengumuman, CSV dan suspend.
+- Simulasi 100 peserta / 50 tim: tepat 50 solve, 100 submission, tanpa error,
+  skor minimum yang konsisten. P95 lokal dev 3.019 ms, preview 3.216 ms.
+- Header nosniff, frame denial, referrer policy, permissions policy, CSP untuk
+  framing/object/base, dan HSTS pada HTTPS. Cookie dan larangan cache privat diuji.
+- Validasi deployment menolak ID D1 lokal, origin non-HTTPS dan secret tidak valid;
+  script memeriksa binding build output dan memisahkan file secret runtime.
+- Panduan deployment, backup/pemulihan, rotasi secret, dan batas fitur disediakan.
+- Seluruh fixture D1 dibersihkan, server verifikasi dihentikan. Tidak ada deployment
+  produksi pada sesi ini. QA visual dan consent/callback Google nyata masih perlu
+  browser yang tersedia. Lihat [hasil verifikasi](VERIFICATION.md).

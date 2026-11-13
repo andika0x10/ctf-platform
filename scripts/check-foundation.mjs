@@ -4,6 +4,9 @@ const origin = process.env.CHECK_ORIGIN || "http://localhost:5173";
 const firstResponse = await fetch(`${origin}/api/health`);
 assert.equal(firstResponse.status, 200, "Health endpoint must return 200 after local migrations");
 assert.equal(firstResponse.headers.get("cache-control"), "no-store");
+assert.equal(firstResponse.headers.get("x-content-type-options"), "nosniff");
+assert.equal(firstResponse.headers.get("x-frame-options"), "DENY");
+assert.equal(firstResponse.headers.get("referrer-policy"), "no-referrer");
 const first = await firstResponse.json();
 assert.equal(first.status, "ok");
 assert.deepEqual(first.services, { d1: "ok", durableObjects: "ok" });
@@ -29,7 +32,7 @@ for (const path of ["/", "/rules", "/challenges", "/scoreboard", "/announcements
   assert.equal(response.status, 200, `${path} must render`);
   const html = await response.text();
   assert.ok(html.includes('lang="id"'), `${path} must use Indonesian document language`);
-  assert.ok(html.includes("CTF Platform"), `${path} must include the shared shell`);
+  assert.ok(html.includes('class="site-header"') && html.includes('class="site-footer"'), `${path} must include the shared shell`);
 }
 assert.equal((await fetch(`${origin}/not-a-page`)).status, 404);
 const font = await fetch(`${origin}/fonts/press-start-2p/PressStart2P-Regular.ttf`);

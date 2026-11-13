@@ -39,7 +39,8 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"start": "vite preview",
-		"deploy": "vinext-cloudflare deploy",
+		"deploy": "node scripts/deploy.mjs",
+		"check:deploy": "node scripts/deploy.mjs --check",
 		"preview": "npm run build && npm run start --",
 		"cf-typegen": "cf workers types",
 		"typecheck": "tsc --noEmit",
@@ -48,6 +49,7 @@
 		"check:foundation": "node scripts/check-foundation.mjs",
 		"auth:setup": "node scripts/setup-auth.mjs",
 		"auth:schema": "node scripts/generate-auth-schema.mjs",
-		"check:auth-teams": "node scripts/check-auth-teams.mjs"
+		"check:auth-teams": "node scripts/check-auth-teams.mjs",
+		"check:platform": "node scripts/check-platform.mjs"
 	}
 }
