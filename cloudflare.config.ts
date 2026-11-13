@@ -43,6 +43,7 @@ export default defineConfig({
       GOOGLE_CLIENT_ID: bindings.secret(),
       GOOGLE_CLIENT_SECRET: bindings.secret(),
       ORGANIZER_EMAILS: bindings.secret(),
+      FLAG_SIGNING_SECRET: bindings.secret(),
     },
   }),
 });

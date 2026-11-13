@@ -6,3 +6,5 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 # Comma-separated Google email addresses; only verified matching accounts become organizers.
 ORGANIZER_EMAILS=
+# Independent key for flag digests. Keep it stable; changing it requires re-entering flags.
+FLAG_SIGNING_SECRET=

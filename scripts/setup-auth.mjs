@@ -10,6 +10,7 @@ function set(key, value) {
   text = pattern.test(text) ? text.replace(pattern, (_, prefix) => prefix + value) : `${text}\n${key}=${value}\n`;
 }
 if ((values.BETTER_AUTH_SECRET?.trim().length || 0) < 32) set("BETTER_AUTH_SECRET", randomBytes(48).toString("base64url"));
+if ((values.FLAG_SIGNING_SECRET?.trim().length || 0) < 32) set("FLAG_SIGNING_SECRET", randomBytes(48).toString("base64url"));
 if (!values.BETTER_AUTH_URL?.trim()) set("BETTER_AUTH_URL", "http://localhost:5173");
 writeFileSync(path, text);
 values = parseEnv(text);

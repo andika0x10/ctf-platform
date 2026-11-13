@@ -8,7 +8,9 @@
 		"better-auth": "1.7.22",
 		"react": "latest",
 		"react-dom": "latest",
+		"react-markdown": "10.1.0",
 		"react-server-dom-webpack": "latest",
+		"remark-gfm": "4.0.1",
 		"vinext": "latest"
 	},
 	"devDependencies": {

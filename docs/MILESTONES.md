@@ -6,7 +6,7 @@
 | 2 | Font pixel lokal, token desain, beranda/aturan, layout dan mega menu responsif | Diimplementasikan; QA visual browser masih perlu dilakukan |
 | 3 | Google login, sesi, dua role, nama tampilan | Diimplementasikan; sesi, guard, dan inisiasi OAuth terverifikasi; consent/callback Google nyata perlu browser |
 | 4 | Pembuatan dan pengelolaan tim | Diimplementasikan dan diverifikasi pada D1 serta HTTP lokal; QA visual browser belum tersedia |
-| 5 | Pengelolaan challenge oleh panitia | Belum dikerjakan |
+| 5 | Pengelolaan challenge oleh panitia | Selesai; TypeScript, 26 tes, migrasi lokal, dan build lulus |
 | 6 | Daftar/detail challenge dan pengalaman peserta | Belum dikerjakan |
 | 7 | Validasi flag, skor dinamis, rate limit | Belum dikerjakan |
 | 8 | Peringkat, profil tim, riwayat | Belum dikerjakan |
@@ -19,7 +19,7 @@ Tidak ada challenge atau skor buatan yang ditampilkan sebagai data nyata.
 
 Migrasi 0001 berisi pengaturan dan kategori. Migrasi 0002 dihasilkan dari skema
 Better Auth 1.7.22, sedangkan 0003 menyimpan tim, keanggotaan, dan aktivitas.
-Challenge dan pengiriman akan ditambahkan pada milestone terkait.
+Migrasi 0004 menambahkan challenge dengan kontrol revisi dan digest flag.
 
 ## Verifikasi implementasi 1–2
 
@@ -58,3 +58,15 @@ Verifikasi akhir: TypeScript, 23 tes, audit dependency (0 kerentanan), dan build
 produksi lulus. `check:auth-teams` lulus pada dev server dan preview build
 produksi, termasuk larangan cache publik untuk HTML terautentikasi. Fixture
 pengujian dibersihkan dari database lokal setelah pemeriksaan.
+
+## Implementasi 5
+
+- Editor panitia: kategori, kesulitan, Markdown aman beserta pratinjau, hint,
+  target, tautan berkas HTTPS, skor, draft/terbit/arsip, dan penggantian flag.
+- Flag menggunakan HMAC SHA-256 yang terikat pada ID challenge; plaintext
+  dan digest tidak dikembalikan melalui API editor. `FLAG_SIGNING_SECRET`
+  dibuat oleh `npm run auth:setup`; pertahankan nilainya setelah challenge dibuat.
+- Kontrol revisi menolak penyimpanan dari editor lama. API memeriksa sesi,
+  role panitia, onboarding, origin, ukuran badan, dan semua field masukan.
+- TypeScript, 26 tes, migrasi lokal, dan build produksi lulus. QA visual
+  browser tetap belum tersedia.

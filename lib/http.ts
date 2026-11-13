@@ -6,7 +6,7 @@ export function jsonResponse(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-export async function jsonBody(request: Request): Promise<Record<string, unknown>> {
+export async function jsonBody(request: Request, maximum = 8192): Promise<Record<string, unknown>> {
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") throw new RequestError(415, "Gunakan format JSON untuk permintaan ini.");
   // Consume with an explicit bound even when Content-Length is missing or incorrect.
   const reader = request.body?.getReader();
@@ -18,7 +18,7 @@ export async function jsonBody(request: Request): Promise<Record<string, unknown
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 8192) { await reader.cancel(); throw new RequestError(413, "Isi permintaan terlalu besar."); }
+      if (size > maximum) { await reader.cancel(); throw new RequestError(413, "Isi permintaan terlalu besar."); }
       chunks.push(value);
     }
     const bytes = new Uint8Array(size);
