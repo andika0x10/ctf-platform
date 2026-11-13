@@ -63,9 +63,10 @@ export async function saveChallenge(database: D1Database, viewer: Viewer, secret
   }
   if (!Number.isSafeInteger(input.revision) || Number(input.revision) < 1) throw new RequestError(400, "Versi challenge tidak valid. Muat ulang editor.");
   const result = await database.prepare(`UPDATE challenges SET title = ?, category = ?, difficulty = ?, description = ?, connection_info = ?, links_json = ?, hint = ?, initial_points = ?, minimum_points = ?, decay = ?, status = ?, flag_digest = COALESCE(?, flag_digest), updated_by = ?, updated_at = ?, revision = revision + 1
-    WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND emailVerified = 1)`)
-    .bind(...values, digest, viewer.id, now, id, Number(input.revision), viewer.id).run();
-  if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau tidak tersedia. Muat ulang editor sebelum menyimpan lagi.");
+    WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM "user" WHERE id = ? AND suspended = 0 AND emailVerified = 1)
+    AND (? != 'draft' OR NOT EXISTS(SELECT 1 FROM solves WHERE challenge_id=challenges.id))`)
+    .bind(...values, digest, viewer.id, now, id, Number(input.revision), viewer.id, input.status).run();
+  if (!result.meta.changes) throw new RequestError(409, "Challenge berubah atau sudah memiliki solve sehingga tidak dapat dijadikan draft. Muat ulang editor; gunakan arsip untuk menyembunyikan challenge yang sudah dimainkan.");
   return { id, revision: Number(input.revision) + 1 };
 }
 export async function listAdminChallenges(database: D1Database, viewer: Viewer, query: string, status: string) {

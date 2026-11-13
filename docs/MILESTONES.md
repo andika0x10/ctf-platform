@@ -8,7 +8,7 @@
 | 4 | Pembuatan dan pengelolaan tim | Diimplementasikan dan diverifikasi pada D1 serta HTTP lokal; QA visual browser belum tersedia |
 | 5 | Pengelolaan challenge oleh panitia | Selesai; TypeScript, 26 tes, migrasi lokal, dan build lulus |
 | 6 | Daftar/detail challenge dan pengalaman peserta | Selesai; TypeScript, 27 tes, dan build lulus |
-| 7 | Validasi flag, skor dinamis, rate limit | Belum dikerjakan |
+| 7 | Validasi flag, skor dinamis, rate limit | Selesai; 32 tes termasuk RPC/restart DO, migrasi, TypeScript, dan build lulus |
 | 8 | Peringkat, profil tim, riwayat | Belum dikerjakan |
 | 9 | Operasional panitia, pengumuman, pengaturan | Belum dikerjakan |
 | 10 | Pengujian menyeluruh dan kesiapan deploy | Belum dikerjakan |
@@ -79,3 +79,17 @@ pengujian dibersihkan dari database lokal setelah pemeriksaan.
   tidak tersedia melalui detail maupun endpoint hint. Hint memerlukan sesi.
 - Peserta tanpa tim tetap dapat membaca challenge dan diarahkan ke pengelolaan tim.
 - TypeScript, 27 tes, dan build produksi lulus.
+
+## Implementasi 7
+
+- Flag divalidasi dengan Web Crypto tanpa menyimpan jawaban pada riwayat.
+- D1 batch memeriksa ulang identitas, membership, status, dan revisi challenge;
+  unique constraint memastikan satu solve per tim/challenge saat pengiriman bersamaan.
+- Skor parabola dihitung dari seluruh solve, termasuk tim/soal arsip. Nilai tim
+  yang sudah solve menyesuaikan bersama; hint tidak mengurangi poin.
+- Sepuluh percobaan per peserta/challenge/menit disimpan dalam SQLite Durable
+  Object. HTTP 429 memiliki Retry-After. Uji panitia tidak menghasilkan solve.
+- Challenge yang sudah memiliki solve dapat diarsipkan, tetapi tidak dikembalikan
+  menjadi draft. Riwayat dan atribusi tim lama dipertahankan saat anggota pindah.
+- 32 tes lulus, termasuk RPC DO nyata, pengiriman bersamaan dan pemulihan limiter
+  setelah restart runtime; TypeScript, migrasi lokal, dan build produksi lulus.
