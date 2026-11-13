@@ -29,6 +29,6 @@ export default async function AccountPage({ searchParams }: Props) {
         {viewer.profileComplete && <Link className="text-link" href={destination}>{viewer.role === "organizer" ? "Buka ruang panitia" : "Buka tim saya"}</Link>}
         <SignOutButton />
       </section></div>
-    <section id="riwayat" className="account-history"><h2 className="subheading">Riwayat pengiriman</h2><p className="field-hint">{history.total} pengiriman. Tim dicatat sesuai saat pengiriman.</p><SubmissionTable entries={history.entries} /><nav className="pagination" aria-label="Halaman riwayat">{page > 1 && <Link className="text-link" href={`/account?page=${page - 1}#riwayat`}>Sebelumnya</Link>}{page * 50 < history.total && <Link className="text-link" href={`/account?page=${page + 1}#riwayat`}>Berikutnya</Link>}</nav></section>
+    <section id="riwayat" className="account-history"><h2 className="subheading">Riwayat submissions</h2><p className="field-hint">{history.total} submission. Setiap submission mencatat timmu saat submit flag.</p><SubmissionTable entries={history.entries} /><nav className="pagination" aria-label="Halaman riwayat submissions">{page > 1 && <Link className="text-link" href={`/account?page=${page - 1}#riwayat`}>Sebelumnya</Link>}{page * 50 < history.total && <Link className="text-link" href={`/account?page=${page + 1}#riwayat`}>Berikutnya</Link>}</nav></section>
   </main>;
 }

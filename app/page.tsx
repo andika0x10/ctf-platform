@@ -16,7 +16,7 @@ export default function Home() {
         <div className="hero-copy">
           <p className="hero-intro"><span className="status-square" aria-hidden="true" />Ruang latihan Capture the Flag</p>
           <h1 id="hero-title">Cari celah.<br />Temukan flag.</h1>
-          <p className="hero-description">Ikuti rasa ingin tahumu. Pecahkan tantangan keamanan siber bersama tim, dengan ritmemu sendiri.</p>
+          <p className="hero-description">Ikuti rasa ingin tahumu. Selesaikan challenge keamanan siber bersama tim, dengan ritmemu sendiri.</p>
           <div className="hero-actions">
             <Link href="/challenges" className="button">Lihat challenges<ArrowIcon /></Link>
             <a href="#cara-bermain" className="text-link">Cara bermain</a>
@@ -55,8 +55,8 @@ export default function Home() {
         </div>
         <ol className="steps">
           <li><span className="step-number" aria-hidden="true">1</span><div><h3>Temukan timmu</h3><p>Masuk dengan Google, lalu buat tim atau bergabung lewat kode dari temanmu.</p></div></li>
-          <li><span className="step-number" aria-hidden="true">2</span><div><h3>Pilih tantangan</h3><p>Baca soal, jelajahi berkas, dan diskusikan pendekatanmu. Hint tersedia saat kamu membutuhkannya.</p></div></li>
-          <li><span className="step-number" aria-hidden="true">3</span><div><h3>Kirim flag</h3><p>Jawaban yang tepat menambah progres dan skor tim. Lalu, lanjutkan ke penemuan berikutnya.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">2</span><div><h3>Pilih challenge</h3><p>Baca soal, jelajahi berkas, dan diskusikan pendekatanmu. Hint tersedia saat kamu membutuhkannya.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">3</span><div><h3>Submit flag</h3><p>Jawaban yang tepat menambah progres dan skor tim. Lalu, lanjutkan ke penemuan berikutnya.</p></div></li>
         </ol>
       </section>
       <section id="tentang" className="about-section" aria-labelledby="about-title">

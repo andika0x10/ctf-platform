@@ -8,12 +8,12 @@ export class AttemptLimitError extends RequestError {
   constructor(public retryAfter: number) { super(429, `Terlalu banyak percobaan. Coba lagi dalam ${retryAfter} detik.`); }
 }
 export async function submitFlag(database: D1Database, viewer: Viewer, secret: string | undefined, limiter: AttemptLimiter, challengeId: string, input: unknown) {
-  if (viewer.role !== "participant" || !viewer.profileComplete) throw new RequestError(403, "Pengiriman flag tersedia untuk peserta yang sudah melengkapi profil.");
+  if (viewer.role !== "participant" || !viewer.profileComplete) throw new RequestError(403, "Submit flag hanya tersedia untuk peserta yang sudah melengkapi profil.");
   const flag = normalizeFlag(input);
   const challenge = await database.prepare("SELECT flag_digest,revision FROM challenges WHERE id=? AND status='published'").bind(challengeId).first<{ flag_digest: string; revision: number }>();
   if (!challenge) throw new RequestError(404, "Challenge tidak tersedia.");
   const member = await database.prepare("SELECT m.team_id,m.membership_id FROM team_members m JOIN teams t ON t.id=m.team_id AND t.status='active' WHERE m.user_id=?").bind(viewer.id).first<{ team_id: string; membership_id: string }>();
-  if (!member) throw new RequestError(403, "Buat atau gabung tim sebelum mengirim flag.");
+  if (!member) throw new RequestError(403, "Buat atau gabung tim sebelum submit flag.");
   const limit = await limiter.consume(challengeId);
   if (!limit.allowed) throw new AttemptLimitError(limit.retryAfter);
   const valid = await verifyFlag(secret, challengeId, flag, challenge.flag_digest);

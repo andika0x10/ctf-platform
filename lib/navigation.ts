@@ -10,11 +10,11 @@ export type NavigationGroup = {
 export const publicNavigation: NavigationGroup[] = [
   {
     id: "practice", label: "Latihan",
-    description: "Satu tantangan, satu hal baru untuk dipelajari. Pilih jalurmu sendiri.",
+    description: "Satu challenge, satu hal baru untuk dipelajari. Pilih jalurmu sendiri.",
     columns: [
       { title: "Mulai bermain", links: [
         { label: "Challenges", href: "/challenges" },
-        { label: "Peringkat", href: "/scoreboard" },
+        { label: "Scoreboard", href: "/scoreboard" },
         { label: "Cara bermain", href: "/#cara-bermain" },
       ] },
       { title: "Jelajahi kategori", links: [
@@ -28,7 +28,7 @@ export const publicNavigation: NavigationGroup[] = [
   },
   {
     id: "community", label: "Komunitas",
-    description: "Bertukar sudut pandang. Pecahkan tantangan bersama timmu.",
+    description: "Bertukar sudut pandang. Selesaikan challenge bersama timmu.",
     columns: [
       { title: "Bersama tim", links: [
         { label: "Tim saya", href: "/team" },
@@ -36,7 +36,7 @@ export const publicNavigation: NavigationGroup[] = [
       ] },
       { title: "Ruang pribadi", links: [
         { label: "Akun saya", href: "/account" },
-        { label: "Riwayat pengiriman", href: "/account#riwayat" },
+        { label: "Riwayat submissions", href: "/account#riwayat" },
       ] },
     ],
   },
@@ -57,7 +57,7 @@ export const publicNavigation: NavigationGroup[] = [
 ];
 
 export const organizerNavigation: NavigationGroup = {
-  id: "organizer", label: "Panitia", description: "Siapkan tantangan dan kelola ruang latihan.",
+  id: "organizer", label: "Panitia", description: "Siapkan challenge dan kelola ruang latihan.",
   columns: [
     { title: "Konten", links: [
       { label: "Kelola challenge", href: "/admin/challenges" },
@@ -66,7 +66,7 @@ export const organizerNavigation: NavigationGroup = {
     { title: "Peserta dan aktivitas", links: [
       { label: "Peserta", href: "/admin/participants" },
       { label: "Tim", href: "/admin/teams" },
-      { label: "Pengiriman", href: "/admin/submissions" },
+      { label: "Submissions", href: "/admin/submissions" },
     ] },
     { title: "Platform", links: [
       { label: "Ringkasan", href: "/admin" },
